@@ -50,23 +50,77 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 - **Agrégation**:
   - Métrique: Count
   - Bucket: Terms sur `category`
-- **Catégories**: electronics (43%), books (20%), clothing (20%), home (17%)
+- **Catégories**: electronics, books, clothing, home
 - **Utilité**: Identifier les catégories de produits les plus populaires
+
+### 5. Chiffre d'affaires
+- **Type**: Lens Metric (Métrique)
+- **ID**: `revenue-metric-viz`
+- **Description**: Montant total des ventes réussies
+- **Agrégation**:
+  - Métrique: Sum sur `amount`
+  - Filtre: `status: success`
+- **Utilité**: Suivre le chiffre d'affaires en temps réel
+
+### 6. Panier moyen
+- **Type**: Lens Metric (Métrique)
+- **ID**: `avg-basket-viz`
+- **Description**: Montant moyen par transaction réussie
+- **Agrégation**:
+  - Métrique: Average sur `amount`
+  - Filtre: `status: success`
+- **Utilité**: Analyser le comportement d'achat moyen
+
+### 7. Taux de succès vs échecs
+- **Type**: Lens Pie Chart (Donut)
+- **ID**: `success-rate-viz`
+- **Description**: Répartition entre transactions réussies et échouées
+- **Agrégation**:
+  - Métrique: Count
+  - Bucket: Terms sur `status`
+- **Utilité**: Monitorer la santé de la plateforme
+
+### 8. Top 10 clients
+- **Type**: Lens Data Table (Tableau)
+- **ID**: `top-customers-viz`
+- **Description**: Les 10 clients avec le plus de transactions
+- **Agrégation**:
+  - Métrique: Count
+  - Bucket: Terms sur `customer_name` (top 10)
+- **Colonnes**:
+  - Nom du client (customer_name)
+  - Nombre de transactions (count)
+- **Utilité**: Identifier les clients fidèles et VIP avec leurs noms
+
+### 9. Nombre total de clients
+- **Type**: Lens Metric (Métrique)
+- **ID**: `total-customers-viz`
+- **Description**: Nombre de clients uniques ayant effectué au moins une transaction
+- **Agrégation**:
+  - Métrique: Unique Count sur `customer_id`
+- **Utilité**: Suivre la base client active
 
 ## 🎨 Dashboard
 
 - **Nom**: **E-Commerce Logs Dashboard**
 - **ID**: `ecommerce-dashboard`
-- **Layout**:
-  - **Ligne 1**: 
-    - Transactions par heure (gauche, 50%)
-    - Top 10 Erreurs (droite, 50%)
-  - **Ligne 2**: 
-    - Répartition par type de paiement (gauche, 50%)
-    - Produits par catégorie (droite, 50%)
+- **Layout**: Grid 3x3 optimisé
+  - **Ligne 1 - KPIs** (5 métriques):
+    - Chiffre d'affaires (20%)
+    - Panier moyen (20%)
+    - Nombre total de clients (20%)
+    - Transactions par heure (19%)
+    - Taux de succès (19%)
+  - **Ligne 2 - Analyses**:
+    - Produits par catégorie (50%)
+    - Top 10 clients avec noms (50%)
+  - **Ligne 3 - Détails**:
+    - Répartition paiements (33%)
+    - Top 10 Erreurs (33%)
+    - Transactions par heure (33%)
 - **Time Range**: Dernières 24 heures (now-24h to now)
 - **Refresh**: Manuel (pause)
-- **Nombre total de visualisations**: 4
+- **Nombre total de visualisations**: 9
 
 ## 📦 Fichiers générés
 
@@ -95,10 +149,10 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 
 ### 4. Export du dashboard
 - **Fichier**: `ecommerce-dashboard-export.ndjson`
-- **Format**: NDJSON (6 lignes)
+- **Format**: NDJSON (11 lignes)
 - **Contenu**: 
   - 1 index pattern (Data View)
-  - 4 visualisations Lens
+  - 9 visualisations Lens (métriques, graphiques, tableaux)
   - 1 dashboard
   - Toutes les références nécessaires
 - **Utilisation**: Import dans un autre Kibana avec `POST /api/saved_objects/_import?overwrite=true`
@@ -123,16 +177,21 @@ Tous les champs textuels sont indexés comme `keyword` directement :
 - `status` → type `keyword`
 - `category` → type `keyword`
 - `customer_id` → type `keyword`
+- `customer_name` → type `keyword`
 - `transaction_id` → type `keyword`
 - `@timestamp` → type `date`
 - `amount` → type `float`
 
 ## 📊 Données injectées
 
-- **Nombre de documents**: 30 transactions
-- **Période**: 25 novembre 2025, 10:00 - 17:00
-- **Transactions réussies**: 20 (66.7%)
-- **Transactions échouées**: 10 (33.3%)
+- **Nombre de documents**: 100 transactions
+- **Période**: 25 novembre 2025, 08:00 - 23:59
+- **Transactions réussies**: 75 (75%)
+- **Transactions échouées**: 25 (25%)
+- **Nombre de clients uniques**: 70 clients
+- **Clients les plus actifs**: Alice Martin, Bob Dubois, Claire Bernard (12 transactions chacun)
+- **Chiffre d'affaires total**: ~10 460€
+- **Panier moyen**: ~154€
 - **Types de paiement**:
   - Credit Card: 10 transactions
   - PayPal: 10 transactions

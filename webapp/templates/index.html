@@ -3,165 +3,387 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring SaaS - ELK Stack</title>
+    <title>Monitoring SaaS - Dashboard Principal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-brand">
-                <div class="logo">M</div>
-                <span>Monitoring SaaS</span>
+                <div class="logo">⚡</div>
+                <span>LogStream Studio</span>
             </a>
             <ul class="nav-links">
-                <li><a href="/" class="active">Accueil</a></li>
+                <li><a href="/">Dashboard</a></li>
                 <li><a href="/upload">Upload</a></li>
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="http://localhost:5601" target="_blank">Kibana</a></li>
-                <li><a href="http://localhost:8081" target="_blank">Mongo Express</a></li>
+                <li><a href="/dashboard">Fichiers</a></li>
+                <li><a href="/health">Health Check</a></li>
+                <li><a href="/search">Recherche</a></li>
+                <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
             </ul>
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Main Container -->
     <div class="container">
-        <div class="hero">
-            <h1>🚀 Plateforme de Monitoring ELK</h1>
-            <p class="mb-3">
-                Solution complète de monitoring et d'analyse de logs basée sur Elasticsearch, Logstash et Kibana.
-                <br>Uploadez vos fichiers de logs, analysez-les en temps réel et visualisez vos données.
+        <!-- Hero Section -->
+        <div class="hero" style="padding: 2rem 0; text-align: center;">
+            <h1>📊 Dashboard Principal</h1>
+            <p class="mb-3" style="color: var(--gray-600);">
+                Vue d'ensemble de votre infrastructure de monitoring en temps réel
             </p>
-            <div class="flex-center gap-2">
-                <a href="/upload" class="btn btn-primary btn-lg">
-                    📤 Uploader des logs
+        </div>
+
+        <!-- KPIs Grid -->
+        <div class="grid grid-4 mt-3">
+            <!-- Total Logs -->
+            <div class="stat-card">
+                <div class="stat-icon success">📄</div>
+                <div class="stat-value" id="kpi-total-logs">
+                    <div class="spinner"></div>
+                </div>
+                <div class="stat-label">Total Logs</div>
+            </div>
+
+            <!-- Logs Today -->
+            <div class="stat-card">
+                <div class="stat-icon primary">📅</div>
+                <div class="stat-value" id="kpi-logs-today">
+                    <div class="spinner"></div>
+                </div>
+                <div class="stat-label">Logs Aujourd'hui</div>
+            </div>
+
+            <!-- Errors -->
+            <div class="stat-card">
+                <div class="stat-icon danger">⚠️</div>
+                <div class="stat-value" id="kpi-errors">
+                    <div class="spinner"></div>
+                </div>
+                <div class="stat-label">Erreurs</div>
+            </div>
+
+            <!-- Files Uploaded -->
+            <div class="stat-card">
+                <div class="stat-icon warning">📤</div>
+                <div class="stat-value" id="kpi-files">
+                    <div class="spinner"></div>
+                </div>
+                <div class="stat-label">Fichiers Uploadés</div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="card mt-4">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">📈 Évolution des Logs (7 derniers jours)</h2>
+                <button onclick="refreshData()" class="btn btn-secondary" style="padding: 0.5rem 1rem;">
+                    🔄 Actualiser
+                </button>
+            </div>
+            <div style="position: relative; height: 350px;">
+                <canvas id="logsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mt-4">
+            <h2 class="mb-3">⚡ Actions Rapides</h2>
+            <div class="grid grid-3">
+                <a href="/upload" class="action-card">
+                    <div class="action-icon" style="background: var(--primary); color: white;">📤</div>
+                    <h3>Upload de Fichiers</h3>
+                    <p>Téléchargez vos fichiers CSV/JSON pour analyse</p>
                 </a>
-                <a href="http://localhost:5601" target="_blank" class="btn btn-secondary btn-lg">
-                    📊 Ouvrir Kibana
+
+                <a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank" class="action-card">
+                    <div class="action-icon" style="background: #00bfb3; color: white;">📊</div>
+                    <h3>Dashboard Kibana</h3>
+                    <p>Visualisez vos données en temps réel</p>
+                </a>
+
+                <a href="http://localhost:9200/_cat/indices?v" target="_blank" class="action-card">
+                    <div class="action-icon" style="background: #f0b90b; color: white;">🔍</div>
+                    <h3>Elasticsearch</h3>
+                    <p>Explorez vos indices et recherchez</p>
                 </a>
             </div>
         </div>
 
-        <!-- Statistics -->
-        <div class="grid grid-3 mt-4">
-            <div class="stat-card">
-                <div class="stat-icon success">📊</div>
-                <div class="stat-value">7</div>
-                <div class="stat-label">Services Actifs</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon primary">🗄️</div>
-                <div class="stat-value">CSV & JSON</div>
-                <div class="stat-label">Formats Supportés</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon warning">⚡</div>
-                <div class="stat-value">Temps Réel</div>
-                <div class="stat-label">Traitement</div>
-            </div>
-        </div>
-
-        <!-- Services Grid -->
+        <!-- Services Status -->
         <div class="card mt-4">
             <h2 class="mb-3">🔧 Services Disponibles</h2>
             <div class="services-grid">
-                <!-- Elasticsearch -->
-                <a href="http://localhost:9200" target="_blank" class="service-card elasticsearch">
+                <a href="http://localhost:9200" target="_blank" class="service-card">
                     <div class="service-icon" style="background: #f0b90b;">ES</div>
                     <div class="service-title">Elasticsearch</div>
-                    <div class="service-desc">Moteur de recherche et d'analyse pour vos logs</div>
-                    <div class="service-url">→ localhost:9200</div>
+                    <div class="service-desc">Moteur de recherche</div>
+                    <div class="service-url">→ :9200</div>
                 </a>
 
-                <!-- Kibana -->
-                <a href="http://localhost:5601" target="_blank" class="service-card kibana">
+                <a href="http://localhost:5601" target="_blank" class="service-card">
                     <div class="service-icon" style="background: #00bfb3;">Ki</div>
                     <div class="service-title">Kibana</div>
-                    <div class="service-desc">Visualisation et exploration des données</div>
-                    <div class="service-url">→ localhost:5601</div>
+                    <div class="service-desc">Visualisation</div>
+                    <div class="service-url">→ :5601</div>
                 </a>
 
-                <!-- MongoDB -->
-                <a href="http://localhost:8081" target="_blank" class="service-card mongodb">
+                <a href="http://localhost:8081" target="_blank" class="service-card">
                     <div class="service-icon" style="background: #00ed64;">M</div>
-                    <div class="service-title">Mongo Express</div>
-                    <div class="service-desc">Interface d'administration MongoDB</div>
-                    <div class="service-url">→ localhost:8081</div>
+                    <div class="service-title">MongoDB</div>
+                    <div class="service-desc">Base de données</div>
+                    <div class="service-url">→ :8081</div>
                 </a>
 
-                <!-- Redis -->
-                <div class="service-card redis">
+                <div class="service-card">
                     <div class="service-icon" style="background: #d82c20;">R</div>
                     <div class="service-title">Redis</div>
-                    <div class="service-desc">Cache en mémoire haute performance</div>
-                    <div class="service-url">→ localhost:6379</div>
+                    <div class="service-desc">Cache</div>
+                    <div class="service-url">→ :6379</div>
                 </div>
 
-                <!-- Logstash -->
-                <div class="service-card" style="border-top-color: #005571;">
+                <div class="service-card">
                     <div class="service-icon" style="background: #005571;">L</div>
                     <div class="service-title">Logstash</div>
-                    <div class="service-desc">Pipeline de traitement des logs</div>
-                    <div class="service-url">→ localhost:5044</div>
+                    <div class="service-desc">Pipeline</div>
+                    <div class="service-url">→ :5044</div>
                 </div>
 
-                <!-- Flask API -->
-                <a href="/upload" class="service-card" style="border-top-color: #2563eb;">
+                <a href="/upload" class="service-card">
                     <div class="service-icon" style="background: #2563eb;">F</div>
-                    <div class="service-title">Flask WebApp</div>
-                    <div class="service-desc">API d'upload et gestion des fichiers</div>
-                    <div class="service-url">→ localhost:8000</div>
+                    <div class="service-title">Flask</div>
+                    <div class="service-desc">API Web</div>
+                    <div class="service-url">→ :8000</div>
                 </a>
             </div>
-        </div>
-
-        <!-- Features -->
-        <div class="card mt-4">
-            <h2 class="mb-3">✨ Fonctionnalités</h2>
-            <div class="grid grid-2">
-                <div>
-                    <h3>📤 Upload de Logs</h3>
-                    <p>Téléchargez vos fichiers CSV et JSON via une interface intuitive avec drag & drop.</p>
-                </div>
-                <div>
-                    <h3>🔍 Recherche Avancée</h3>
-                    <p>Utilisez Elasticsearch pour rechercher et filtrer vos logs en temps réel.</p>
-                </div>
-                <div>
-                    <h3>📊 Visualisations</h3>
-                    <p>Créez des dashboards personnalisés avec Kibana pour analyser vos données.</p>
-                </div>
-                <div>
-                    <h3>💾 Stockage Sécurisé</h3>
-                    <p>Vos métadonnées sont stockées dans MongoDB pour un accès rapide.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Getting Started -->
-        <div class="card mt-4">
-            <h2 class="mb-3">🚀 Démarrage Rapide</h2>
-            <div class="alert alert-info mb-3">
-                <span>💡</span>
-                <span>Tous les services sont déjà configurés et prêts à l'emploi !</span>
-            </div>
-            <ol style="padding-left: 1.5rem; color: var(--gray-700); line-height: 2;">
-                <li>Accédez à la <a href="/upload" style="color: var(--primary); font-weight: 600;">page d'upload</a></li>
-                <li>Sélectionnez ou glissez-déposez un fichier CSV/JSON</li>
-                <li>Attendez le traitement par Logstash (10-30 secondes)</li>
-                <li>Visualisez vos logs dans <a href="http://localhost:5601" target="_blank" style="color: var(--primary); font-weight: 600;">Kibana</a></li>
-                <li>Consultez les métadonnées dans <a href="http://localhost:8081" target="_blank" style="color: var(--primary); font-weight: 600;">Mongo Express</a></li>
-            </ol>
         </div>
     </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>© 2025 Monitoring SaaS - ELK Stack | Développé avec ❤️ pour le monitoring de logs</p>
+        <p>© 2025 Monitoring SaaS - ELK Stack | Dashboard en temps réel</p>
         <p class="text-muted mt-1">Elasticsearch • Logstash • Kibana • MongoDB • Redis • Flask</p>
     </footer>
+
+    <style>
+        .spinner {
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .action-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .action-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .action-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .action-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-900);
+        }
+
+        .action-card p {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            margin: 0;
+        }
+    </style>
+
+    <script>
+        let logsChart = null;
+
+        // Fonction pour formater les nombres avec des espaces
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
+        // Fonction pour charger les statistiques
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                // Mettre à jour les KPIs
+                document.getElementById('kpi-total-logs').textContent = formatNumber(data.total_logs);
+                document.getElementById('kpi-logs-today').textContent = formatNumber(data.logs_today);
+                document.getElementById('kpi-errors').textContent = formatNumber(data.errors);
+                document.getElementById('kpi-files').textContent = formatNumber(data.files_uploaded);
+
+                // Mettre à jour le graphique
+                updateChart(data.timeline);
+            } catch (error) {
+                console.error('Erreur lors du chargement des statistiques:', error);
+                // Afficher des valeurs par défaut en cas d'erreur
+                document.getElementById('kpi-total-logs').textContent = '0';
+                document.getElementById('kpi-logs-today').textContent = '0';
+                document.getElementById('kpi-errors').textContent = '0';
+                document.getElementById('kpi-files').textContent = '0';
+            }
+        }
+
+        // Fonction pour créer/mettre à jour le graphique
+        function updateChart(timeline) {
+            const ctx = document.getElementById('logsChart').getContext('2d');
+            
+            const labels = timeline.map(item => {
+                const date = new Date(item.date);
+                return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+            });
+            
+            const data = timeline.map(item => item.count);
+
+            if (logsChart) {
+                // Mettre à jour le graphique existant
+                logsChart.data.labels = labels;
+                logsChart.data.datasets[0].data = data;
+                logsChart.update();
+            } else {
+                // Créer un nouveau graphique
+                logsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Nombre de logs',
+                            data: data,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#2563eb',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 14,
+                                        family: 'Inter'
+                                    },
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: {
+                                    size: 14,
+                                    family: 'Inter'
+                                },
+                                bodyFont: {
+                                    size: 13,
+                                    family: 'Inter'
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Logs: ' + formatNumber(context.parsed.y);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    font: {
+                                        size: 12,
+                                        family: 'Inter'
+                                    },
+                                    callback: function(value) {
+                                        return formatNumber(value);
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 12,
+                                        family: 'Inter'
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Fonction pour rafraîchir les données
+        function refreshData() {
+            loadStats();
+        }
+
+        // Charger les statistiques au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            
+            // Rafraîchir automatiquement toutes les 30 secondes
+            setInterval(loadStats, 30000);
+        });
+    </script>
 </body>
 </html>

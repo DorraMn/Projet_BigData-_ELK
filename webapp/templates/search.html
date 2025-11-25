@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche Logs - LogStream Studio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <div class="logo">⚡</div>
+                <span>LogStream Studio</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/dashboard">Fichiers</a></li>
+                <li><a href="/health">Health Check</a></li>
+                <li><a href="/search" class="active">Recherche</a></li>
+                <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="hero-header">
+            <div class="hero-content">
+                <div>
+                    <h1>🔍 Recherche dans les Logs</h1>
+                    <p class="hero-subtitle">Recherchez et filtrez vos logs Elasticsearch en temps réel</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="card mt-3">
+            <h2>Critères de recherche</h2>
+            <form id="search-form" class="search-form">
+                <div class="form-row">
+                    <div class="form-group form-group-full">
+                        <label for="query">🔎 Recherche texte libre</label>
+                        <input type="text" id="query" name="query" class="form-input" 
+                               placeholder="Rechercher dans les logs (message, produit, client, type de paiement...)">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="level">📊 Niveau / Status</label>
+                        <select id="level" name="level" class="form-input">
+                            <option value="">-- Tous --</option>
+                            <option value="success">Success</option>
+                            <option value="failed">Failed</option>
+                            <option value="pending">Pending</option>
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="service">🛠️ Service</label>
+                        <select id="service" name="service" class="form-input">
+                            <option value="">-- Tous --</option>
+                            <option value="payment-api">Payment API</option>
+                            <option value="order-service">Order Service</option>
+                            <option value="inventory-service">Inventory Service</option>
+                            <option value="notification-service">Notification Service</option>
+                            <option value="user-service">User Service</option>
+                            <option value="analytics-service">Analytics Service</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date_from">📅 Date début</label>
+                        <input type="datetime-local" id="date_from" name="date_from" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_to">📅 Date fin</label>
+                        <input type="datetime-local" id="date_to" name="date_to" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        🔍 Rechercher
+                    </button>
+                    <button type="button" id="reset-btn" class="btn btn-secondary">
+                        🔄 Reset
+                    </button>
+                    <button type="button" id="export-csv-btn" class="btn btn-success" disabled>
+                        📥 Export CSV
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Info -->
+        <div id="results-info" class="card mt-3" style="display: none;">
+            <div class="results-header">
+                <h3>📋 Résultats de recherche</h3>
+                <div id="results-stats" class="results-stats"></div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="loading-container" style="display: none;">
+            <div class="spinner"></div>
+            <p>Recherche en cours...</p>
+        </div>
+
+        <!-- Results Table -->
+        <div class="card mt-3" id="results-container" style="display: none;">
+            <div class="table-container">
+                <table id="logs-table" class="display" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Niveau</th>
+                            <th>Service</th>
+                            <th>Message</th>
+                            <th>Produit</th>
+                            <th>Client</th>
+                            <th>Paiement</th>
+                            <th>Montant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination-container" class="pagination-container" style="display: none;">
+            <button id="prev-page" class="btn btn-pagination" disabled>← Précédent</button>
+            <span id="page-info" class="page-info"></span>
+            <button id="next-page" class="btn btn-pagination" disabled>Suivant →</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 LogStream Studio - Recherche Elasticsearch</p>
+        <p class="text-muted mt-1">Powered by Elasticsearch • Flask • DataTables.js</p>
+    </footer>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <!-- DataTables Buttons -->
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2::before {
+            content: "";
+            width: 4px;
+            height: 1.5rem;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .card h3 {
+            color: var(--text-color);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #f3f4f6;
+        }
+
+        .form-group-full {
+            grid-column: 1 / -1;
+        }
+
+        .form-input {
+            padding: 0.875rem;
+            border: 2px solid var(--gray-300);
+            border-radius: 10px;
+            background: #ffffff;
+            color: #000000;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .form-input::placeholder {
+            color: #6b7280;
+        }
+
+        .form-input option {
+            background: #ffffff;
+            color: #000000;
+            padding: 0.5rem;
+        }
+
+        .form-input:hover {
+            border-color: #9ca3af;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #f9fafb;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding-top: 0.5rem;
+        }
+
+        .btn {
+            font-weight: 600;
+            padding: 0.875rem 1.75rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: 2px solid #f59e0b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            border-color: #d97706;
+        }
+
+        .btn-pagination {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: 2px solid #10b981;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            min-width: 150px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-pagination:hover:not(:disabled) {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border-color: #059669;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-pagination:disabled {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            border: 2px solid #4b5563;
+            color: #6b7280;
+            opacity: 1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-pagination:disabled:hover {
+            transform: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        }
+
+        .btn-success:disabled {
+            background: var(--gray-700);
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading-container {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .loading-container .spinner {
+            margin: 0 auto 1rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .results-stats {
+            display: flex;
+            gap: 2.5rem;
+            flex-wrap: wrap;
+            font-size: 0.95rem;
+            color: var(--gray-400);
+        }
+
+        .results-stats span {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: var(--gray-800);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .results-stats strong {
+            color: var(--primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        /* DataTables Dark Theme Override */
+        .dataTables_wrapper {
+            color: var(--text-color);
+        }
+
+        #logs-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            background: var(--card-bg);
+            color: var(--text-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #logs-table thead {
+            background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
+        }
+
+        #logs-table thead th {
+            padding: 1.125rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 3px solid var(--primary);
+            color: #ffffff;
+        }
+
+        #logs-table thead th:first-child {
+            border-top-left-radius: 10px;
+        }
+
+        #logs-table thead th:last-child {
+            border-top-right-radius: 10px;
+        }
+
+        #logs-table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-800);
+            color: #e5e7eb;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        #logs-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        #logs-table tbody tr:hover {
+            background: var(--gray-800);
+            transform: scale(1.01);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #logs-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .status-failed {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .status-info {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .status-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-900) 100%);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--gray-700);
+        }
+
+        .page-info {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding: 0.75rem 2rem;
+            background: var(--primary);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+            letter-spacing: 0.5px;
+        }
+
+        /* DataTables Filter/Search */
+        .dataTables_wrapper {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 1rem;
+        }
+
+        .dataTables_wrapper .dataTables_filter label,
+        .dataTables_wrapper .dataTables_length label {
+            color: #f3f4f6;
+            font-weight: 500;
+        }
+
+        .dataTables_filter input {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 500;
+            border: 2px solid var(--gray-300);
+            padding: 0.625rem 1rem;
+            border-radius: 8px;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .dataTables_filter input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .dataTables_length select {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 500;
+            border: 2px solid var(--gray-300);
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            border-radius: 8px;
+            margin: 0 0.5rem;
+        }
+
+        .dataTables_length select option {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .dataTables_info {
+            color: var(--gray-400);
+            font-size: 0.9rem;
+            padding: 1rem 0;
+        }
+
+        .dataTables_paginate {
+            padding: 1rem 0;
+        }
+
+        .dataTables_paginate .paginate_button {
+            padding: 0.5rem 1rem;
+            margin: 0 0.25rem;
+            border-radius: 6px;
+            background: var(--gray-700);
+            color: var(--text-color) !important;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .dataTables_paginate .paginate_button:hover {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .dataTables_paginate .paginate_button.current {
+            background: var(--primary);
+            color: white !important;
+        }
+
+        .dataTables_paginate .paginate_button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 0;
+        let lastSearchParams = {};
+        let dataTable = null;
+        let allLogs = [];
+
+        // Initialiser DataTables
+        function initDataTable() {
+            if (dataTable) {
+                dataTable.destroy();
+            }
+
+            dataTable = $('#logs-table').DataTable({
+                data: allLogs,
+                columns: [
+                    { 
+                        data: 'timestamp',
+                        render: function(data) {
+                            return new Date(data).toLocaleString('fr-FR');
+                        }
+                    },
+                    { 
+                        data: 'level',
+                        render: function(data) {
+                            const statusClass = 'status-' + data.toLowerCase();
+                            return `<span class="status-badge ${statusClass}">${data}</span>`;
+                        }
+                    },
+                    { data: 'service' },
+                    { data: 'message' },
+                    { data: 'product' },
+                    { data: 'customer' },
+                    { data: 'payment_type' },
+                    { 
+                        data: 'amount',
+                        render: function(data) {
+                            return data ? `${data} €` : '';
+                        }
+                    }
+                ],
+                pageLength: 50,
+                order: [[0, 'desc']],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/fr-FR.json'
+                },
+                dom: 'Bfrtip',
+                buttons: []
+            });
+        }
+
+        // Fonction de recherche
+        async function performSearch(page = 1) {
+            const formData = new FormData(document.getElementById('search-form'));
+            const params = new URLSearchParams();
+
+            for (const [key, value] of formData.entries()) {
+                if (value) {
+                    params.append(key, value);
+                }
+            }
+            params.append('page', page);
+
+            // Sauvegarder les paramètres
+            lastSearchParams = Object.fromEntries(params.entries());
+            currentPage = page;
+
+            // Afficher le spinner
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('results-container').style.display = 'none';
+            document.getElementById('results-info').style.display = 'none';
+            document.getElementById('pagination-container').style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/search?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    allLogs = data.logs;
+                    totalPages = data.total_pages;
+
+                    // Afficher les statistiques
+                    document.getElementById('results-info').style.display = 'block';
+                    document.getElementById('results-stats').innerHTML = `
+                        <span>📊 Total: <strong>${data.total}</strong> résultats</span>
+                        <span>📄 Page: <strong>${data.page}</strong> / <strong>${data.total_pages}</strong></span>
+                    `;
+
+                    // Afficher le tableau
+                    document.getElementById('results-container').style.display = 'block';
+                    initDataTable();
+
+                    // Activer le bouton export
+                    document.getElementById('export-csv-btn').disabled = false;
+
+                    // Mettre à jour la pagination
+                    updatePagination(data);
+                } else {
+                    alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                alert('Erreur lors de la recherche: ' + error.message);
+            } finally {
+                document.getElementById('loading-spinner').style.display = 'none';
+            }
+        }
+
+        // Mettre à jour la pagination
+        function updatePagination(data) {
+            const container = document.getElementById('pagination-container');
+            container.style.display = 'flex';
+
+            document.getElementById('page-info').textContent = 
+                `Page ${data.page} sur ${data.total_pages}`;
+
+            document.getElementById('prev-page').disabled = data.page <= 1;
+            document.getElementById('next-page').disabled = data.page >= data.total_pages;
+        }
+
+        // Export CSV
+        function exportToCSV() {
+            if (allLogs.length === 0) {
+                alert('Aucune donnée à exporter');
+                return;
+            }
+
+            // Créer le contenu CSV
+            const headers = ['Timestamp', 'Niveau', 'Service', 'Message', 'Produit', 'Client', 'Paiement', 'Montant'];
+            const csvContent = [
+                headers.join(','),
+                ...allLogs.map(log => [
+                    `"${log.timestamp}"`,
+                    `"${log.level}"`,
+                    `"${log.service}"`,
+                    `"${log.message.replace(/"/g, '""')}"`,
+                    `"${log.product}"`,
+                    `"${log.customer}"`,
+                    `"${log.payment_type}"`,
+                    `"${log.amount}"`
+                ].join(','))
+            ].join('\n');
+
+            // Télécharger le fichier
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `logs-export-${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event listeners
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            performSearch(1);
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', function() {
+            document.getElementById('search-form').reset();
+            document.getElementById('results-container').style.display = 'none';
+            document.getElementById('results-info').style.display = 'none';
+            document.getElementById('pagination-container').style.display = 'none';
+            document.getElementById('export-csv-btn').disabled = true;
+            allLogs = [];
+            currentPage = 1;
+            totalPages = 0;
+        });
+
+        document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+
+        document.getElementById('prev-page').addEventListener('click', function() {
+            if (currentPage > 1) {
+                performSearch(currentPage - 1);
+            }
+        });
+
+        document.getElementById('next-page').addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                performSearch(currentPage + 1);
+            }
+        });
+
+        // Charger tous les logs au démarrage (optionnel)
+        // performSearch(1);
+    </script>
+</body>
+</html>

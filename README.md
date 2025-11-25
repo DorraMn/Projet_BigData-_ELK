@@ -1,4 +1,4 @@
-# 📊 Monitoring SaaS - ELK Stack
+# ⚡ LogStream Studio - ELK Stack
 
 ## 📋 Description du Projet
 
@@ -502,7 +502,110 @@ Activez impérativement :
 - **MongoDB 7** - Base de données NoSQL
 - **Mongo Express 1.0.2** - Interface d'administration MongoDB
 - **Redis 7** - Cache en mémoire
+- **PyMongo 4.3.3** - Driver MongoDB pour Python
+- **redis-py 4.5.1** - Client Redis pour Python
 - **Docker & Docker Compose** - Conteneurisation et orchestration
+
+## 🗄️ Module Database - Intégration MongoDB et Redis
+
+### 📦 Nouveau Module `database.py`
+
+Un module Python centralisé pour gérer les connexions MongoDB et Redis avec :
+
+✅ **Connexions automatiques** avec variables d'environnement
+✅ **Tests de connexion** au démarrage
+✅ **Health check** complet des services
+✅ **Gestion des erreurs** avec fallback gracieux
+✅ **API simple** pour récupérer les clients
+
+### 🚀 Utilisation Rapide
+
+```python
+from database import init_databases, db_manager
+
+# Initialiser les connexions
+init_databases()
+
+# Utiliser MongoDB
+uploads_col = db_manager.get_mongo_collection('uploads')
+uploads_col.insert_one({'filename': 'test.csv', 'status': 'processed'})
+
+# Utiliser Redis
+redis_client = db_manager.get_redis_client()
+redis_client.set('cache:key', 'value', ex=60)
+
+# Health check
+health = db_manager.health_check()
+print(health)
+```
+
+### 🧪 Tests Complets
+
+Testez le module avec la suite de tests :
+
+```bash
+# Test basique
+docker exec webapp python3 database.py
+
+# Test complet (CRUD, Performance, Health Check)
+docker exec webapp python3 test_database.py
+```
+
+**Résultats des tests** :
+- ✅ MongoDB CRUD operations (71,361 ops/sec)
+- ✅ Redis operations (33,127 SET/sec, 45,250 GET/sec)
+- ✅ Health check avec métriques détaillées
+- ✅ 100% de réussite sur 4 catégories de tests
+
+### 📚 Documentation Complète
+
+Consultez **[DATABASE-MODULE.md](./DATABASE-MODULE.md)** pour :
+- Guide d'utilisation détaillé
+- API Reference complète
+- Variables d'environnement
+- Exemples avancés (cache, bulk operations)
+- Dépannage et bonnes pratiques
+
+### 🔧 Configuration
+
+Variables d'environnement disponibles dans `.env.example` :
+
+```bash
+# MongoDB
+MONGO_URI=mongodb://mongodb:27017
+MONGO_DB=monitoring
+MONGO_TIMEOUT=5000
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_TIMEOUT=5
+```
+
+### 📊 Métriques Health Check
+
+Le module fournit des métriques détaillées :
+
+```json
+{
+  "timestamp": "2025-11-25T16:29:15.663079",
+  "services": {
+    "mongodb": {
+      "status": "healthy",
+      "database": "monitoring",
+      "collections": 2,
+      "data_size_mb": 0.01
+    },
+    "redis": {
+      "status": "healthy",
+      "version": "7.4.7",
+      "used_memory": "1.20M",
+      "connected_clients": 1
+    }
+  }
+}
+```
 
 ## 🎯 Cas d'Usage et Exemples
 

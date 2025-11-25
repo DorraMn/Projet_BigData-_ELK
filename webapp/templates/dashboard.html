@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Monitoring SaaS</title>
+    <title>Dashboard - LogStream Studio</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,15 +14,16 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-brand">
-                <div class="logo">M</div>
-                <span>Monitoring SaaS</span>
+                <div class="logo">⚡</div>
+                <span>LogStream Studio</span>
             </a>
             <ul class="nav-links">
-                <li><a href="/">Accueil</a></li>
+                <li><a href="/">Dashboard</a></li>
                 <li><a href="/upload">Upload</a></li>
-                <li><a href="/dashboard" class="active">Dashboard</a></li>
-                <li><a href="http://localhost:5601" target="_blank">Kibana</a></li>
-                <li><a href="http://localhost:8081" target="_blank">Mongo Express</a></li>
+                <li><a href="/dashboard" class="active">Fichiers</a></li>
+                <li><a href="/health">Health Check</a></li>
+                <li><a href="/search">Recherche</a></li>
+                <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
             </ul>
         </div>
     </nav>
@@ -113,31 +114,95 @@
 
         <!-- Quick Links -->
         <div class="card mt-4">
-            <h2 class="mb-3">🔗 Liens Rapides</h2>
+            <h2 class="mb-3">🔗 Actions Rapides</h2>
             <div class="grid grid-2">
-                <a href="http://localhost:5601" target="_blank" class="btn btn-primary" style="justify-content: center;">
-                    <span>📊</span>
-                    <span>Ouvrir Kibana</span>
+                <a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank" class="quick-action-card">
+                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">📊</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Ouvrir Kibana</div>
+                        <div class="quick-action-desc">Visualiser le dashboard</div>
+                    </div>
                 </a>
-                <a href="http://localhost:8081" target="_blank" class="btn btn-success" style="justify-content: center;">
-                    <span>🗄️</span>
-                    <span>Ouvrir Mongo Express</span>
+                <a href="http://localhost:8081" target="_blank" class="quick-action-card">
+                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🗄️</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Mongo Express</div>
+                        <div class="quick-action-desc">Gérer la base MongoDB</div>
+                    </div>
                 </a>
-                <a href="http://localhost:9200/_cat/indices?v" target="_blank" class="btn btn-secondary" style="justify-content: center;">
-                    <span>🔍</span>
-                    <span>Voir les Index ES</span>
+                <a href="http://localhost:9200/_cat/indices?v" target="_blank" class="quick-action-card">
+                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🔍</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Index Elasticsearch</div>
+                        <div class="quick-action-desc">Consulter les indices</div>
+                    </div>
                 </a>
-                <a href="/upload" class="btn btn-secondary" style="justify-content: center;">
-                    <span>📤</span>
-                    <span>Uploader un Fichier</span>
+                <a href="/upload" class="quick-action-card">
+                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">📤</div>
+                    <div class="quick-action-content">
+                        <div class="quick-action-title">Uploader un Fichier</div>
+                        <div class="quick-action-desc">Importer des données</div>
+                    </div>
                 </a>
             </div>
         </div>
+
+        <style>
+            .quick-action-card {
+                display: flex;
+                align-items: center;
+                gap: 1.25rem;
+                padding: 1.5rem;
+                background: var(--card-bg);
+                border: 2px solid var(--border-primary);
+                border-radius: 12px;
+                text-decoration: none;
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .quick-action-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+                border-color: var(--primary);
+            }
+
+            .quick-action-icon {
+                width: 56px;
+                height: 56px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.75rem;
+                flex-shrink: 0;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+
+            .quick-action-content {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .quick-action-title {
+                font-size: 1.125rem;
+                font-weight: 700;
+                color: #ffffff;
+                letter-spacing: 0.3px;
+            }
+
+            .quick-action-desc {
+                font-size: 0.875rem;
+                color: #9ca3af;
+                font-weight: 500;
+            }
+        </style>
     </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>© 2025 Monitoring SaaS - ELK Stack | Développé avec ❤️ pour le monitoring de logs</p>
+        <p>© 2025 LogStream Studio - ELK Stack | Plateforme d'analyse de logs en temps réel</p>
     </footer>
 </body>
 </html>

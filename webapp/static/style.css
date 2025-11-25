@@ -1,5 +1,5 @@
 /* ============================================
-   Monitoring SaaS - Design System
+   LogStream Studio - Design System
    ============================================ */
 
 :root {
@@ -127,16 +127,23 @@ body {
 }
 
 .nav-brand .logo {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  border-radius: var(--radius);
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  transition: all 0.3s ease;
+}
+
+.nav-brand .logo:hover {
+  transform: rotate(-5deg) scale(1.05);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.5);
 }
 
 .nav-links {

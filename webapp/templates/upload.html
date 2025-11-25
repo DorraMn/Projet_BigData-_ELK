@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload - Monitoring SaaS</title>
+    <title>Upload - LogStream Studio</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,15 +14,16 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="/" class="nav-brand">
-                <div class="logo">M</div>
-                <span>Monitoring SaaS</span>
+                <div class="logo">⚡</div>
+                <span>LogStream Studio</span>
             </a>
             <ul class="nav-links">
-                <li><a href="/">Accueil</a></li>
+                <li><a href="/">Dashboard</a></li>
                 <li><a href="/upload" class="active">Upload</a></li>
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="http://localhost:5601" target="_blank">Kibana</a></li>
-                <li><a href="http://localhost:8081" target="_blank">Mongo Express</a></li>
+                <li><a href="/dashboard">Fichiers</a></li>
+                <li><a href="/health">Health Check</a></li>
+                <li><a href="/search">Recherche</a></li>
+                <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
             </ul>
         </div>
     </nav>
@@ -126,7 +127,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-        <p>© 2025 Monitoring SaaS - ELK Stack | Développé avec ❤️ pour le monitoring de logs</p>
+        <p>© 2025 LogStream Studio - ELK Stack | Plateforme d'analyse de logs en temps réel</p>
     </footer>
 
     <script>

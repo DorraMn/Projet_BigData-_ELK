@@ -3,3 +3,24 @@ timestamp,level,message,service
 2025-11-25T10:01:00Z,WARN,High memory usage detected,monitoring
 2025-11-25T10:02:00Z,ERROR,Connection timeout,database
 2025-11-25T10:03:00Z,INFO,Request processed successfully,api
+2025-11-25T10:04:00Z,INFO,User login successful,user-service
+2025-11-25T10:05:00Z,DEBUG,Cache hit for user profile,user-service
+2025-11-25T10:06:00Z,ERROR,Payment gateway timeout,payment-api
+2025-11-25T10:07:00Z,INFO,Order created successfully,order-service
+2025-11-25T10:08:00Z,WARN,Low inventory alert,inventory-service
+2025-11-25T10:09:00Z,INFO,Email notification sent,notification-service
+2025-11-25T10:10:00Z,ERROR,Database connection pool exhausted,database
+2025-11-25T10:11:00Z,INFO,Product search completed,analytics-service
+2025-11-25T10:12:00Z,WARN,API rate limit approaching,api
+2025-11-25T10:13:00Z,INFO,Session created,webapp
+2025-11-25T10:14:00Z,ERROR,Invalid API key,api
+2025-11-25T10:15:00Z,INFO,File upload completed,webapp
+2025-11-25T10:16:00Z,DEBUG,Query execution time 45ms,database
+2025-11-25T10:17:00Z,WARN,Slow query detected,database
+2025-11-25T10:18:00Z,INFO,Cart updated,order-service
+2025-11-25T10:19:00Z,ERROR,External service unavailable,payment-api
+2025-11-25T10:20:00Z,INFO,Analytics report generated,analytics-service
+2025-11-25T10:21:00Z,WARN,Disk space running low,monitoring
+2025-11-25T10:22:00Z,INFO,Backup completed successfully,database
+2025-11-25T10:23:00Z,ERROR,Authentication failed,user-service
+2025-11-25T10:24:00Z,INFO,Stock updated,inventory-service

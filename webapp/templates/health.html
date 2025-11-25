@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Check - LogStream Studio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <div class="logo">⚡</div>
+                <span>LogStream Studio</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/dashboard">Fichiers</a></li>
+                <li><a href="/health" class="active">Health Check</a></li>
+                <li><a href="/search">Recherche</a></li>
+                <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Hero Section -->
+        <div class="hero-header">
+            <div class="hero-content">
+                <h1>🏥 Health Check</h1>
+                <p class="hero-subtitle">
+                    Statut en temps réel de tous les services de l'infrastructure
+                </p>
+            </div>
+            <button onclick="refreshHealth()" class="btn btn-primary">
+                🔄 Actualiser
+            </button>
+        </div>
+
+        <!-- Overall Status Card -->
+        <div class="card mt-3 overall-status-card" id="overall-status">
+            <div class="status-loading">
+                <div id="status-spinner" class="spinner"></div>
+            </div>
+            <div id="status-content" class="status-content">
+                <div class="status-info">
+                    <h2 class="status-title">
+                        <span id="status-icon">🔄</span>
+                        <span id="status-text">Vérification en cours...</span>
+                    </h2>
+                    <p class="status-details" id="status-details">
+                        Chargement des informations...
+                    </p>
+                </div>
+                <div class="status-metrics">
+                    <div class="health-percentage" id="health-percentage">--%</div>
+                    <div class="last-check" id="last-check">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Grid -->
+        <div class="grid grid-2 mt-4" id="services-grid">
+            <!-- Services will be dynamically inserted here -->
+        </div>
+
+        <!-- Legend -->
+        <div class="card mt-4 legend-card">
+            <h3 class="legend-title">📋 Légende</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <span class="legend-dot healthy-dot"></span>
+                    <span><strong>Healthy:</strong> Service opérationnel</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot degraded-dot"></span>
+                    <span><strong>Degraded:</strong> Service partiellement disponible</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot unhealthy-dot"></span>
+                    <span><strong>Unhealthy:</strong> Service indisponible</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 LogStream Studio - Health Check Dashboard</p>
+        <p class="text-muted mt-1">Auto-refresh activé : toutes les 30 secondes</p>
+    </footer>
+
+    <style>
+        .spinner {
+            border: 3px solid var(--gray-200);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Hero Section */
+        .hero-header {
+            padding: 2rem 0;
+        }
+
+        .hero-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .hero-subtitle {
+            color: var(--gray-600);
+            margin-top: 0.5rem;
+        }
+
+        /* Overall Status Card */
+        .overall-status-card {
+            position: relative;
+        }
+
+        .status-loading {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-content {
+            display: none;
+            flex: 1;
+        }
+
+        .status-content.active {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-info {
+            flex: 1;
+        }
+
+        .status-title {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+        }
+
+        .status-title.status-healthy {
+            color: #10b981;
+        }
+
+        .status-title.status-degraded {
+            color: #f59e0b;
+        }
+
+        .status-details {
+            color: var(--gray-600);
+            margin: 0.5rem 0 0 0;
+        }
+
+        .status-metrics {
+            text-align: right;
+        }
+
+        .health-percentage {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .health-percentage.status-healthy {
+            color: #10b981;
+        }
+
+        .health-percentage.status-degraded {
+            color: #f59e0b;
+        }
+
+        .last-check {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
+        /* Legend Section */
+        .legend-card {
+            background: var(--card-bg);
+        }
+
+        .legend-title {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .healthy-dot {
+            background: #10b981;
+        }
+
+        .degraded-dot {
+            background: #f59e0b;
+        }
+
+        .unhealthy-dot {
+            background: #ef4444;
+        }
+
+        .service-health-card {
+            background: var(--card-bg);
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            color: var(--text-color);
+        }
+
+        .service-health-card.healthy {
+            border-color: #10b981;
+            border-left: 4px solid #10b981;
+        }
+
+        .service-health-card.unhealthy {
+            border-color: #ef4444;
+            border-left: 4px solid #ef4444;
+        }
+
+        .service-health-card.error {
+            border-color: #f59e0b;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .service-health-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .service-health-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .service-icon-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.healthy {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-badge.unhealthy {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status-badge.error {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .service-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .service-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .service-detail-label {
+            color: var(--gray-400);
+            font-size: 0.875rem;
+        }
+
+        .service-detail-value {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-color);
+        }
+
+        .service-url {
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            color: #dc2626;
+            font-size: 0.875rem;
+            word-break: break-word;
+        }
+
+        /* Error Display */
+        .error-container {
+            flex: 1;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .error-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            color: #ef4444;
+            margin: 0 0 0.5rem 0;
+            font-size: 1.5rem;
+        }
+
+        .error-text {
+            color: var(--gray-600);
+            margin: 0;
+        }
+    </style>
+
+    <script>
+        let healthData = null;
+
+        // Fonction pour charger les données de health check
+        async function loadHealth() {
+            try {
+                const response = await fetch('/api/health');
+                healthData = await response.json();
+                
+                // Masquer le spinner et afficher le contenu
+                document.querySelector('.status-loading').style.display = 'none';
+                document.getElementById('status-content').classList.add('active');
+                
+                // Mettre à jour le statut général
+                updateOverallStatus();
+                
+                // Mettre à jour les services
+                updateServicesGrid();
+            } catch (error) {
+                console.error('Erreur lors du chargement du health check:', error);
+                showError();
+            }
+        }
+
+        // Fonction pour mettre à jour le statut général
+        function updateOverallStatus() {
+            const statusIcon = document.getElementById('status-icon');
+            const statusText = document.getElementById('status-text');
+            const statusDetails = document.getElementById('status-details');
+            const healthPercentage = document.getElementById('health-percentage');
+            const lastCheck = document.getElementById('last-check');
+            
+            const percentage = Math.round((healthData.healthy_services / healthData.total_services) * 100);
+            
+            if (healthData.overall_status === 'healthy') {
+                statusIcon.textContent = '✅';
+                statusText.textContent = 'Tous les services sont opérationnels';
+                statusText.className = 'status-title status-healthy';
+            } else {
+                statusIcon.textContent = '⚠️';
+                statusText.textContent = 'Certains services rencontrent des problèmes';
+                statusText.className = 'status-title status-degraded';
+            }
+            
+            statusDetails.textContent = `${healthData.healthy_services} sur ${healthData.total_services} services opérationnels`;
+            healthPercentage.textContent = `${percentage}%`;
+            healthPercentage.className = percentage === 100 ? 'health-percentage status-healthy' : 'health-percentage status-degraded';
+            
+            const checkTime = new Date(healthData.timestamp);
+            lastCheck.textContent = `Dernière vérification : ${checkTime.toLocaleTimeString('fr-FR')}`;
+        }
+
+        // Fonction pour mettre à jour la grille des services
+        function updateServicesGrid() {
+            const grid = document.getElementById('services-grid');
+            grid.innerHTML = '';
+            
+            const serviceConfigs = {
+                elasticsearch: { name: 'Elasticsearch', icon: 'ES', color: '#f0b90b' },
+                kibana: { name: 'Kibana', icon: 'Ki', color: '#00bfb3' },
+                mongodb: { name: 'MongoDB', icon: 'M', color: '#00ed64' },
+                redis: { name: 'Redis', icon: 'R', color: '#d82c20' },
+                logstash: { name: 'Logstash', icon: 'L', color: '#005571' }
+            };
+            
+            Object.entries(healthData.services).forEach(([serviceName, serviceData]) => {
+                const config = serviceConfigs[serviceName] || { name: serviceName, icon: '?', color: '#6b7280' };
+                const card = createServiceCard(config, serviceData);
+                grid.appendChild(card);
+            });
+        }
+
+        // Fonction pour créer une carte de service
+        function createServiceCard(config, data) {
+            const card = document.createElement('div');
+            card.className = `service-health-card ${data.status}`;
+            
+            let detailsHTML = '';
+            
+            // Détails spécifiques selon le service
+            if (data.status === 'healthy') {
+                if (data.cluster_status) {
+                    detailsHTML += `
+                        <div class="service-detail-row">
+                            <span class="service-detail-label">Cluster Status</span>
+                            <span class="service-detail-value">${data.cluster_status}</span>
+                        </div>
+                    `;
+                }
+                if (data.nodes) {
+                    detailsHTML += `
+                        <div class="service-detail-row">
+                            <span class="service-detail-label">Nodes</span>
+                            <span class="service-detail-value">${data.nodes}</span>
+                        </div>
+                    `;
+                }
+                if (data.version) {
+                    detailsHTML += `
+                        <div class="service-detail-row">
+                            <span class="service-detail-label">Version</span>
+                            <span class="service-detail-value">${data.version}</span>
+                        </div>
+                    `;
+                }
+                if (data.database) {
+                    detailsHTML += `
+                        <div class="service-detail-row">
+                            <span class="service-detail-label">Database</span>
+                            <span class="service-detail-value">${data.database}</span>
+                        </div>
+                    `;
+                }
+                if (data.used_memory) {
+                    detailsHTML += `
+                        <div class="service-detail-row">
+                            <span class="service-detail-label">Memory Used</span>
+                            <span class="service-detail-value">${data.used_memory}</span>
+                        </div>
+                    `;
+                }
+                if (data.connected_clients !== undefined) {
+                    detailsHTML += `
+                        <div class="service-detail-row">
+                            <span class="service-detail-label">Connected Clients</span>
+                            <span class="service-detail-value">${data.connected_clients}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            detailsHTML += `
+                <div class="service-detail-row">
+                    <span class="service-detail-label">URL</span>
+                    <span class="service-detail-value service-url">${data.url}</span>
+                </div>
+            `;
+            
+            let errorHTML = '';
+            if (data.error) {
+                errorHTML = `<div class="error-message">❌ ${data.error}</div>`;
+            }
+            
+            card.innerHTML = `
+                <div class="service-health-header">
+                    <div class="service-health-title">
+                        <div class="service-icon-badge" style="background: ${config.color};">
+                            ${config.icon}
+                        </div>
+                        <span>${config.name}</span>
+                    </div>
+                    <span class="status-badge ${data.status}">${data.status}</span>
+                </div>
+                <div>
+                    ${detailsHTML}
+                </div>
+                ${errorHTML}
+            `;
+            
+            return card;
+        }
+
+        // Fonction pour afficher une erreur
+        function showError() {
+            const statusContent = document.getElementById('status-content');
+            statusContent.classList.add('active');
+            statusContent.innerHTML = `
+                <div class="error-container">
+                    <div class="error-icon">❌</div>
+                    <h2 class="error-title">Erreur de chargement</h2>
+                    <p class="error-text">Impossible de récupérer le statut des services</p>
+                    <button onclick="refreshHealth()" class="btn btn-primary" style="margin-top: 1rem;">
+                        Réessayer
+                    </button>
+                </div>
+            `;
+        }
+
+        // Fonction pour rafraîchir les données
+        function refreshHealth() {
+            document.querySelector('.status-loading').style.display = 'flex';
+            document.getElementById('status-content').classList.remove('active');
+            loadHealth();
+        }
+
+        // Charger les données au démarrage
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHealth();
+            
+            // Auto-refresh toutes les 30 secondes
+            setInterval(loadHealth, 30000);
+        });
+    </script>
+</body>
+</html>
