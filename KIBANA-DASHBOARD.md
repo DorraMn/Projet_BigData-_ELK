@@ -29,7 +29,8 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 - **Filtre**: `status: failed`
 - **Agrégation**:
   - Métrique: Count
-  - Bucket: Terms sur `error_code.keyword` (top 10)
+  - Bucket: Terms sur `error_code` (top 10)
+- **Note**: Le champ `error_code` est déjà de type `keyword`, pas besoin du suffixe `.keyword`
 - **Utilité**: Identifier rapidement les erreurs principales à corriger
 
 ### 3. Répartition par type de paiement
@@ -38,7 +39,8 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 - **Description**: Distribution des transactions par méthode de paiement
 - **Agrégation**:
   - Métrique: Count
-  - Bucket: Terms sur `payment_type.keyword`
+  - Bucket: Terms sur `payment_type`
+- **Note**: Le champ `payment_type` est déjà de type `keyword`, pas besoin du suffixe `.keyword`
 - **Utilité**: Comprendre les préférences de paiement des clients
 
 ## 🎨 Dashboard
@@ -100,6 +102,18 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 - **URL**: http://localhost:9200
 - **Index**: `logs-ecommerce-2025.11.25`
 - **Vérification**: `curl http://localhost:9200/logs-ecommerce-*/_count`
+
+## 🗂️ Structure des données (Mapping)
+
+Tous les champs textuels sont indexés comme `keyword` directement :
+- `error_code` → type `keyword` (pas besoin de `.keyword`)
+- `payment_type` → type `keyword`
+- `status` → type `keyword`
+- `category` → type `keyword`
+- `customer_id` → type `keyword`
+- `transaction_id` → type `keyword`
+- `@timestamp` → type `date`
+- `amount` → type `float`
 
 ## 📊 Données injectées
 
