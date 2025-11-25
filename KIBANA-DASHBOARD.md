@@ -43,6 +43,16 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 - **Note**: Le champ `payment_type` est déjà de type `keyword`, pas besoin du suffixe `.keyword`
 - **Utilité**: Comprendre les préférences de paiement des clients
 
+### 4. Produits par catégorie
+- **Type**: Lens Bar Chart (Barres verticales)
+- **ID**: `products-by-category-viz`
+- **Description**: Nombre de transactions par catégorie de produits
+- **Agrégation**:
+  - Métrique: Count
+  - Bucket: Terms sur `category`
+- **Catégories**: electronics (43%), books (20%), clothing (20%), home (17%)
+- **Utilité**: Identifier les catégories de produits les plus populaires
+
 ## 🎨 Dashboard
 
 - **Nom**: **E-Commerce Logs Dashboard**
@@ -53,8 +63,10 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
     - Top 10 Erreurs (droite, 50%)
   - **Ligne 2**: 
     - Répartition par type de paiement (gauche, 50%)
+    - Produits par catégorie (droite, 50%)
 - **Time Range**: Dernières 24 heures (now-24h to now)
 - **Refresh**: Manuel (pause)
+- **Nombre total de visualisations**: 4
 
 ## 📦 Fichiers générés
 
@@ -83,10 +95,10 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 
 ### 4. Export du dashboard
 - **Fichier**: `ecommerce-dashboard-export.ndjson`
-- **Format**: NDJSON (5 lignes)
+- **Format**: NDJSON (6 lignes)
 - **Contenu**: 
   - 1 index pattern (Data View)
-  - 3 visualisations Lens
+  - 4 visualisations Lens
   - 1 dashboard
   - Toutes les références nécessaires
 - **Utilisation**: Import dans un autre Kibana avec `POST /api/saved_objects/_import?overwrite=true`
