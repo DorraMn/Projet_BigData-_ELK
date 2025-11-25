@@ -1,0 +1,20 @@
+{
+  "index_patterns": ["logs-saas-*"],
+  "priority": 500,
+  "template": {
+    "mappings": {
+      "properties": {
+        "timestamp": { "type": "date" },
+        "level": { "type": "keyword" },
+        "message": { "type": "text" },
+        "service": { "type": "keyword" },
+        "user_id": { "type": "keyword" },
+        "endpoint": { "type": "keyword" },
+        "response_time": { "type": "float" },
+        "status_code": { "type": "integer" },
+        "memory_usage": { "type": "float" },
+        "cpu_usage": { "type": "float" }
+      }
+    }
+  }
+}

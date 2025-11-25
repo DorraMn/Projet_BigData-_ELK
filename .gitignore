@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Data directories (contains large persistent data)
+data/elasticsearch/
+data/kibana/
+data/logstash/
+data/mongodb/
+data/redis/
+data/uploads/
+
+# Uploads
+webapp/uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.bak

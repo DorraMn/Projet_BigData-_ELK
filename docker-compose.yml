@@ -1,0 +1,110 @@
+services:
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}"
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+  kibana:
+    image: "docker.elastic.co/kibana/kibana:${KIBANA_VERSION}"
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.security.enabled=false
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./data/kibana:/usr/share/kibana/data
+    ports:
+      - "5601:5601"
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+  logstash:
+    image: "docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION}"
+    container_name: logstash
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5044:5044"
+    volumes:
+      - ./pipeline:/usr/share/logstash/pipeline:ro
+      - ./data/logstash:/usr/share/logstash/data
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    depends_on:
+      - mongodb
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017/
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+  webapp:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile
+    container_name: webapp
+    depends_on:
+      - mongodb
+      - redis
+      - elasticsearch
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./webapp:/app
+    environment:
+      - FLASK_ENV=${FLASK_ENV}
+      - FLASK_RUN_PORT=${FLASK_RUN_PORT}
+      - REDIS_URL=redis://redis:6379/0
+      - MONGO_URI=mongodb://mongodb:27017
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - elk_net
+    restart: unless-stopped
+
+networks:
+  elk_net:
+    driver: bridge

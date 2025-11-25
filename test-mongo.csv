@@ -1,0 +1,5 @@
+timestamp,level,message,service
+2025-11-25T10:00:00Z,INFO,Application started,webapp
+2025-11-25T10:01:00Z,WARN,High memory usage detected,monitoring
+2025-11-25T10:02:00Z,ERROR,Connection timeout,database
+2025-11-25T10:03:00Z,INFO,Request processed successfully,api

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload - Monitoring SaaS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <div class="logo">M</div>
+                <span>Monitoring SaaS</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/upload" class="active">Upload</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="http://localhost:5601" target="_blank">Kibana</a></li>
+                <li><a href="http://localhost:8081" target="_blank">Mongo Express</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="card">
+            <h1>📤 Upload de Fichiers</h1>
+            <p>Téléchargez vos fichiers de logs au format CSV ou JSON pour analyse.</p>
+
+        </div>
+
+        <!-- Flash Messages -->
+        <div id="messages">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for m in messages %}
+                        <div class="alert alert-error">
+                            <span>⚠️</span>
+                            <span>{{ m }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Upload Form -->
+        <div class="card">
+            <form id="uploadForm">
+                <div id="dropzone" class="dropzone">
+                    <div class="dropzone-icon">📁</div>
+                    <div class="dropzone-text">
+                        Glissez-déposez votre fichier ici
+                    </div>
+                    <div class="dropzone-subtext">
+                        ou cliquez pour sélectionner un fichier
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-muted">Formats acceptés: CSV, JSON, TXT, LOG</span>
+                    </div>
+                    <input id="fileInput" name="file" type="file" accept=".csv,.json,.txt,.log" style="display: none;" />
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress" id="progressContainer" style="display:none;">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                </div>
+
+                <!-- Error Alert -->
+                <div id="error" role="alert"></div>
+
+                <!-- Submit Button -->
+                <div class="mt-3 text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <span>📤</span>
+                        <span>Uploader le fichier</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Result Preview -->
+        <div id="result">
+            {% if preview %}
+                <div class="preview-container card">
+                    <h3 class="mb-2">📄 Prévisualisation - {{ filename }}</h3>
+                    <div class="alert alert-success mb-2">
+                        <span>✅</span>
+                        <span>Fichier uploadé avec succès ! Traitement en cours par Logstash...</span>
+                    </div>
+                    <pre class="preview">{% for line in preview %}{{ line }}
+{% endfor %}</pre>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Info Card -->
+        <div class="card mt-4">
+            <h3 class="mb-2">ℹ️ Informations</h3>
+            <div class="grid grid-2">
+                <div>
+                    <h4 style="color: var(--primary); margin-bottom: 0.5rem;">📋 Formats Supportés</h4>
+                    <ul style="padding-left: 1.5rem; color: var(--gray-600);">
+                        <li><strong>CSV</strong> - Fichiers séparés par virgules</li>
+                        <li><strong>JSON</strong> - Fichiers JSON (une ligne par objet)</li>
+                        <li><strong>TXT/LOG</strong> - Fichiers texte brut</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--success); margin-bottom: 0.5rem;">⚡ Après l'Upload</h4>
+                    <ul style="padding-left: 1.5rem; color: var(--gray-600);">
+                        <li>Les métadonnées sont sauvegardées dans <strong>MongoDB</strong></li>
+                        <li><strong>Logstash</strong> traite le fichier automatiquement</li>
+                        <li>Les logs sont indexés dans <strong>Elasticsearch</strong></li>
+                        <li>Visualisez les données dans <strong>Kibana</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 Monitoring SaaS - ELK Stack | Développé avec ❤️ pour le monitoring de logs</p>
+    </footer>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const form = document.getElementById('uploadForm');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const errorEl = document.getElementById('error');
+        const resultEl = document.getElementById('result');
+
+        // Click dropzone to open file selector
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // Update dropzone text when file is selected
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                const fileName = fileInput.files[0].name;
+                dropzone.querySelector('.dropzone-text').textContent = '✓ ' + fileName;
+                dropzone.querySelector('.dropzone-subtext').textContent = 'Cliquez sur "Uploader" pour continuer';
+                dropzone.style.borderColor = 'var(--success)';
+            }
+        });
+
+        // Drag & drop handlers
+        ['dragenter', 'dragover'].forEach(evt => dropzone.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        }));
+
+        ['dragleave', 'drop'].forEach(evt => dropzone.addEventListener(evt, e => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        }));
+
+        dropzone.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length) {
+                fileInput.files = dt.files;
+                const fileName = dt.files[0].name;
+                dropzone.querySelector('.dropzone-text').textContent = '✓ ' + fileName;
+                dropzone.querySelector('.dropzone-subtext').textContent = 'Cliquez sur "Uploader" pour continuer';
+                dropzone.style.borderColor = 'var(--success)';
+            }
+        });
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            errorEl.innerHTML = '';
+            errorEl.className = '';
+
+            const file = fileInput.files[0];
+            if (!file) {
+                errorEl.innerHTML = '<div class="alert alert-warning"><span>⚠️</span><span>Veuillez sélectionner un fichier.</span></div>';
+                return;
+            }
+
+            // Basic client-side validation of extension
+            const allowed = ['txt', 'csv', 'log', 'json'];
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!allowed.includes(ext)) {
+                errorEl.innerHTML = '<div class="alert alert-error"><span>❌</span><span>Format invalide. Autorisés: ' + allowed.join(', ') + '</span></div>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ url_for("upload") }}', true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            xhr.upload.addEventListener('progress', evt => {
+                if (evt.lengthComputable) {
+                    const percent = Math.round((evt.loaded / evt.total) * 100);
+                    progressContainer.style.display = 'block';
+                    progressBar.style.width = percent + '%';
+                }
+            });
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    progressBar.style.width = '0%';
+                    progressContainer.style.display = 'none';
+
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const res = JSON.parse(xhr.responseText);
+                            if (res.error) {
+                                errorEl.innerHTML = '<div class="alert alert-error"><span>❌</span><span>' + res.error + '</span></div>';
+                                return;
+                            }
+
+                            // Show success and preview
+                            if (res.preview && res.preview.length > 0) {
+                                const previewCard = document.createElement('div');
+                                previewCard.className = 'preview-container card';
+                                
+                                const title = document.createElement('h3');
+                                title.className = 'mb-2';
+                                title.textContent = '📄 Prévisualisation - ' + (res.metadata?.filename || file.name);
+                                
+                                const successAlert = document.createElement('div');
+                                successAlert.className = 'alert alert-success mb-2';
+                                successAlert.innerHTML = '<span>✅</span><span>Fichier uploadé avec succès ! Traitement en cours par Logstash...</span>';
+                                
+                                const pre = document.createElement('pre');
+                                pre.className = 'preview';
+                                pre.textContent = res.preview.join('\n');
+                                
+                                previewCard.appendChild(title);
+                                previewCard.appendChild(successAlert);
+                                previewCard.appendChild(pre);
+                                
+                                resultEl.innerHTML = '';
+                                resultEl.appendChild(previewCard);
+                                
+                                // Scroll to result
+                                previewCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                
+                                // Reset form
+                                setTimeout(() => {
+                                    fileInput.value = '';
+                                    dropzone.querySelector('.dropzone-text').textContent = 'Glissez-déposez votre fichier ici';
+                                    dropzone.querySelector('.dropzone-subtext').textContent = 'ou cliquez pour sélectionner un fichier';
+                                    dropzone.style.borderColor = '';
+                                }, 2000);
+                            }
+                        } catch (err) {
+                            errorEl.innerHTML = '<div class="alert alert-error"><span>❌</span><span>Réponse invalide du serveur.</span></div>';
+                        }
+                    } else {
+                        try {
+                            const res = JSON.parse(xhr.responseText);
+                            errorEl.innerHTML = '<div class="alert alert-error"><span>❌</span><span>' + (res.error || 'Upload échoué') + '</span></div>';
+                        } catch (err) {
+                            errorEl.innerHTML = '<div class="alert alert-error"><span>❌</span><span>Upload échoué (status ' + xhr.status + ')</span></div>';
+                        }
+                    }
+                }
+            };
+
+            xhr.send(formData);
+        });
+    </script>
+</body>
+</html>

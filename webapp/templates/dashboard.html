@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Monitoring SaaS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <div class="logo">M</div>
+                <span>Monitoring SaaS</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/dashboard" class="active">Dashboard</a></li>
+                <li><a href="http://localhost:5601" target="_blank">Kibana</a></li>
+                <li><a href="http://localhost:8081" target="_blank">Mongo Express</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="hero">
+            <h1>📊 Dashboard de Monitoring</h1>
+            <p>Vue d'ensemble de vos uploads et statistiques en temps réel</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-3">
+            <div class="stat-card">
+                <div class="stat-icon primary">📁</div>
+                <div class="stat-value">{{ total_uploads }}</div>
+                <div class="stat-label">Total Uploads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon success">✅</div>
+                <div class="stat-value">{{ success_uploads }}</div>
+                <div class="stat-label">Succès</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon warning">⚠️</div>
+                <div class="stat-value">{{ error_uploads }}</div>
+                <div class="stat-label">Erreurs</div>
+            </div>
+        </div>
+
+        <!-- Recent Uploads -->
+        <div class="card mt-4">
+            <h2 class="mb-3">📋 Derniers Uploads</h2>
+            {% if uploads and uploads|length > 0 %}
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--bg-tertiary); text-align: left; border-bottom: 2px solid var(--border-secondary);">
+                                <th style="padding: 1rem; font-weight: 600; color: var(--text-primary);">Fichier</th>
+                                <th style="padding: 1rem; font-weight: 600; color: var(--text-primary);">Type</th>
+                                <th style="padding: 1rem; font-weight: 600; color: var(--text-primary);">Taille</th>
+                                <th style="padding: 1rem; font-weight: 600; color: var(--text-primary);">Status</th>
+                                <th style="padding: 1rem; font-weight: 600; color: var(--text-primary);">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for upload in uploads %}
+                            <tr style="border-bottom: 1px solid var(--border-primary); transition: background 0.2s;">
+                                <td style="padding: 1rem; font-weight: 500; color: var(--text-primary);">
+                                    <span style="color: var(--primary-light);">📄</span> {{ upload.filename }}
+                                </td>
+                                <td style="padding: 1rem;">
+                                    <span style="background: var(--bg-tertiary); color: var(--text-primary); padding: 0.35rem 0.85rem; border-radius: var(--radius); font-size: 0.875rem; border: 1px solid var(--border-primary); font-weight: 500;">
+                                        {{ upload.extension or 'N/A' }}
+                                    </span>
+                                </td>
+                                <td style="padding: 1rem; color: var(--text-secondary); font-weight: 500;">{{ (upload.size / 1024) | round(2) }} KB</td>
+                                <td style="padding: 1rem;">
+                                    {% if upload.status == 'saved' or upload.status == 'processed' %}
+                                        <span style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; padding: 0.35rem 0.85rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3);">
+                                            ✓ {{ upload.status }}
+                                        </span>
+                                    {% elif upload.status == 'error' %}
+                                        <span style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 0.35rem 0.85rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 600; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                            ✗ Erreur
+                                        </span>
+                                    {% else %}
+                                        <span style="background: var(--bg-tertiary); color: var(--text-secondary); padding: 0.35rem 0.85rem; border-radius: var(--radius); font-size: 0.875rem; border: 1px solid var(--border-primary);">
+                                            {{ upload.status }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 1rem; color: var(--text-muted); font-size: 0.875rem;">
+                                    {{ upload.uploaded_at[:19] if upload.uploaded_at else 'N/A' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <span>ℹ️</span>
+                    <span>Aucun upload pour le moment. <a href="/upload" style="color: var(--primary); font-weight: 600;">Commencez par uploader un fichier</a></span>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card mt-4">
+            <h2 class="mb-3">🔗 Liens Rapides</h2>
+            <div class="grid grid-2">
+                <a href="http://localhost:5601" target="_blank" class="btn btn-primary" style="justify-content: center;">
+                    <span>📊</span>
+                    <span>Ouvrir Kibana</span>
+                </a>
+                <a href="http://localhost:8081" target="_blank" class="btn btn-success" style="justify-content: center;">
+                    <span>🗄️</span>
+                    <span>Ouvrir Mongo Express</span>
+                </a>
+                <a href="http://localhost:9200/_cat/indices?v" target="_blank" class="btn btn-secondary" style="justify-content: center;">
+                    <span>🔍</span>
+                    <span>Voir les Index ES</span>
+                </a>
+                <a href="/upload" class="btn btn-secondary" style="justify-content: center;">
+                    <span>📤</span>
+                    <span>Uploader un Fichier</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 Monitoring SaaS - ELK Stack | Développé avec ❤️ pour le monitoring de logs</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring SaaS - ELK Stack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                <div class="logo">M</div>
+                <span>Monitoring SaaS</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="active">Accueil</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="http://localhost:5601" target="_blank">Kibana</a></li>
+                <li><a href="http://localhost:8081" target="_blank">Mongo Express</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="container">
+        <div class="hero">
+            <h1>🚀 Plateforme de Monitoring ELK</h1>
+            <p class="mb-3">
+                Solution complète de monitoring et d'analyse de logs basée sur Elasticsearch, Logstash et Kibana.
+                <br>Uploadez vos fichiers de logs, analysez-les en temps réel et visualisez vos données.
+            </p>
+            <div class="flex-center gap-2">
+                <a href="/upload" class="btn btn-primary btn-lg">
+                    📤 Uploader des logs
+                </a>
+                <a href="http://localhost:5601" target="_blank" class="btn btn-secondary btn-lg">
+                    📊 Ouvrir Kibana
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="grid grid-3 mt-4">
+            <div class="stat-card">
+                <div class="stat-icon success">📊</div>
+                <div class="stat-value">7</div>
+                <div class="stat-label">Services Actifs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon primary">🗄️</div>
+                <div class="stat-value">CSV & JSON</div>
+                <div class="stat-label">Formats Supportés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon warning">⚡</div>
+                <div class="stat-value">Temps Réel</div>
+                <div class="stat-label">Traitement</div>
+            </div>
+        </div>
+
+        <!-- Services Grid -->
+        <div class="card mt-4">
+            <h2 class="mb-3">🔧 Services Disponibles</h2>
+            <div class="services-grid">
+                <!-- Elasticsearch -->
+                <a href="http://localhost:9200" target="_blank" class="service-card elasticsearch">
+                    <div class="service-icon" style="background: #f0b90b;">ES</div>
+                    <div class="service-title">Elasticsearch</div>
+                    <div class="service-desc">Moteur de recherche et d'analyse pour vos logs</div>
+                    <div class="service-url">→ localhost:9200</div>
+                </a>
+
+                <!-- Kibana -->
+                <a href="http://localhost:5601" target="_blank" class="service-card kibana">
+                    <div class="service-icon" style="background: #00bfb3;">Ki</div>
+                    <div class="service-title">Kibana</div>
+                    <div class="service-desc">Visualisation et exploration des données</div>
+                    <div class="service-url">→ localhost:5601</div>
+                </a>
+
+                <!-- MongoDB -->
+                <a href="http://localhost:8081" target="_blank" class="service-card mongodb">
+                    <div class="service-icon" style="background: #00ed64;">M</div>
+                    <div class="service-title">Mongo Express</div>
+                    <div class="service-desc">Interface d'administration MongoDB</div>
+                    <div class="service-url">→ localhost:8081</div>
+                </a>
+
+                <!-- Redis -->
+                <div class="service-card redis">
+                    <div class="service-icon" style="background: #d82c20;">R</div>
+                    <div class="service-title">Redis</div>
+                    <div class="service-desc">Cache en mémoire haute performance</div>
+                    <div class="service-url">→ localhost:6379</div>
+                </div>
+
+                <!-- Logstash -->
+                <div class="service-card" style="border-top-color: #005571;">
+                    <div class="service-icon" style="background: #005571;">L</div>
+                    <div class="service-title">Logstash</div>
+                    <div class="service-desc">Pipeline de traitement des logs</div>
+                    <div class="service-url">→ localhost:5044</div>
+                </div>
+
+                <!-- Flask API -->
+                <a href="/upload" class="service-card" style="border-top-color: #2563eb;">
+                    <div class="service-icon" style="background: #2563eb;">F</div>
+                    <div class="service-title">Flask WebApp</div>
+                    <div class="service-desc">API d'upload et gestion des fichiers</div>
+                    <div class="service-url">→ localhost:8000</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="card mt-4">
+            <h2 class="mb-3">✨ Fonctionnalités</h2>
+            <div class="grid grid-2">
+                <div>
+                    <h3>📤 Upload de Logs</h3>
+                    <p>Téléchargez vos fichiers CSV et JSON via une interface intuitive avec drag & drop.</p>
+                </div>
+                <div>
+                    <h3>🔍 Recherche Avancée</h3>
+                    <p>Utilisez Elasticsearch pour rechercher et filtrer vos logs en temps réel.</p>
+                </div>
+                <div>
+                    <h3>📊 Visualisations</h3>
+                    <p>Créez des dashboards personnalisés avec Kibana pour analyser vos données.</p>
+                </div>
+                <div>
+                    <h3>💾 Stockage Sécurisé</h3>
+                    <p>Vos métadonnées sont stockées dans MongoDB pour un accès rapide.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Getting Started -->
+        <div class="card mt-4">
+            <h2 class="mb-3">🚀 Démarrage Rapide</h2>
+            <div class="alert alert-info mb-3">
+                <span>💡</span>
+                <span>Tous les services sont déjà configurés et prêts à l'emploi !</span>
+            </div>
+            <ol style="padding-left: 1.5rem; color: var(--gray-700); line-height: 2;">
+                <li>Accédez à la <a href="/upload" style="color: var(--primary); font-weight: 600;">page d'upload</a></li>
+                <li>Sélectionnez ou glissez-déposez un fichier CSV/JSON</li>
+                <li>Attendez le traitement par Logstash (10-30 secondes)</li>
+                <li>Visualisez vos logs dans <a href="http://localhost:5601" target="_blank" style="color: var(--primary); font-weight: 600;">Kibana</a></li>
+                <li>Consultez les métadonnées dans <a href="http://localhost:8081" target="_blank" style="color: var(--primary); font-weight: 600;">Mongo Express</a></li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 Monitoring SaaS - ELK Stack | Développé avec ❤️ pour le monitoring de logs</p>
+        <p class="text-muted mt-1">Elasticsearch • Logstash • Kibana • MongoDB • Redis • Flask</p>
+    </footer>
+</body>
+</html>
