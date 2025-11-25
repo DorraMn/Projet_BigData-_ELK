@@ -7,34 +7,34 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 ## 🎯 Index Pattern
 
 - **Nom**: `logs-*`
-- **ID**: `32056731-9898-4f69-9916-07bbca0662d1`
+- **ID**: `logs-ecommerce-dataview` (référence: `32056731-9898-4f69-9916-07bbca0662d1`)
 - **Champ temporel**: `@timestamp`
 - **Description**: Data View pour tous les logs E-Commerce
 
 ## 📈 Visualisations créées
 
 ### 1. Transactions par heure
-- **Type**: Line Chart (Courbe)
-- **ID**: `b6393ba0-c9f5-11f0-b9de-2327bf14c31d`
+- **Type**: Lens Line Chart (Courbe)
+- **ID**: `trans-per-hour-viz`
 - **Description**: Évolution du nombre de transactions par heure
 - **Agrégation**: 
   - Métrique: Count
-  - Bucket: Date Histogram sur `@timestamp` (intervalle: 1 heure)
+  - Bucket: Date Histogram sur `@timestamp` (intervalle: automatique)
 - **Utilité**: Visualiser les pics d'activité et tendances horaires
 
 ### 2. Top 10 Erreurs
-- **Type**: Data Table (Tableau)
-- **ID**: `b7d3d8d0-c9f5-11f0-b9de-2327bf14c31d`
+- **Type**: Lens Data Table (Tableau)
+- **ID**: `top-errors-viz`
 - **Description**: Les 10 codes d'erreur les plus fréquents
-- **Filtre**: `status:failed`
+- **Filtre**: `status: failed`
 - **Agrégation**:
   - Métrique: Count
   - Bucket: Terms sur `error_code.keyword` (top 10)
 - **Utilité**: Identifier rapidement les erreurs principales à corriger
 
 ### 3. Répartition par type de paiement
-- **Type**: Pie Chart (Donut)
-- **ID**: `b99bc790-c9f5-11f0-b9de-2327bf14c31d`
+- **Type**: Lens Pie Chart (Donut)
+- **ID**: `payment-types-viz`
 - **Description**: Distribution des transactions par méthode de paiement
 - **Agrégation**:
   - Métrique: Count
@@ -44,13 +44,15 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 ## 🎨 Dashboard
 
 - **Nom**: **E-Commerce Logs Dashboard**
-- **ID**: `bb68e670-c9f5-11f0-b9de-2327bf14c31d`
+- **ID**: `ecommerce-dashboard`
 - **Layout**:
   - **Ligne 1**: 
     - Transactions par heure (gauche, 50%)
     - Top 10 Erreurs (droite, 50%)
   - **Ligne 2**: 
     - Répartition par type de paiement (gauche, 50%)
+- **Time Range**: Dernières 24 heures (now-24h to now)
+- **Refresh**: Manuel (pause)
 
 ## 📦 Fichiers générés
 
@@ -79,18 +81,20 @@ Dashboard Kibana créé avec succès pour le monitoring des transactions E-Comme
 
 ### 4. Export du dashboard
 - **Fichier**: `ecommerce-dashboard-export.ndjson`
-- **Format**: NDJSON (4 lignes)
+- **Format**: NDJSON (5 lignes)
 - **Contenu**: 
-  - 3 visualisations
+  - 1 index pattern (Data View)
+  - 3 visualisations Lens
   - 1 dashboard
   - Toutes les références nécessaires
-- **Utilisation**: Import dans un autre Kibana avec `POST /api/saved_objects/_import`
+- **Utilisation**: Import dans un autre Kibana avec `POST /api/saved_objects/_import?overwrite=true`
 
 ## 🌐 Accès
 
 ### Kibana
-- **URL**: http://localhost:5601
-- **Navigation**: Analytics > Dashboard > E-Commerce Logs Dashboard
+- **URL Dashboard**: http://localhost:5601/app/dashboards#/view/ecommerce-dashboard
+- **URL Discover**: http://localhost:5601/app/discover
+- **Navigation manuelle**: Analytics > Dashboard > E-Commerce Logs Dashboard
 
 ### Elasticsearch
 - **URL**: http://localhost:9200
