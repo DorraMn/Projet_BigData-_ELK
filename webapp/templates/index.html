@@ -25,9 +25,29 @@
                 <li><a href="/health">Health Check</a></li>
                 <li><a href="/search">Recherche</a></li>
                 <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
+                <li><a href="#" id="logout-btn" style="color: #ff6b35;">Déconnexion</a></li>
             </ul>
         </div>
     </nav>
+    
+    <script>
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Erreur lors de la déconnexion:', error);
+            }
+        });
+    </script>
 
     <!-- Main Container -->
     <div class="container">
@@ -56,7 +76,7 @@
                 <div class="stat-value" id="kpi-logs-today">
                     <div class="spinner"></div>
                 </div>
-                <div class="stat-label">Logs Aujourd'hui</div>
+                <div class="stat-label">Logs Récents (24h)</div>
             </div>
 
             <!-- Errors -->
@@ -88,30 +108,6 @@
             </div>
             <div style="position: relative; height: 350px;">
                 <canvas id="logsChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="card mt-4">
-            <h2 class="mb-3">⚡ Actions Rapides</h2>
-            <div class="grid grid-3">
-                <a href="/upload" class="action-card">
-                    <div class="action-icon" style="background: var(--primary); color: white;">📤</div>
-                    <h3>Upload de Fichiers</h3>
-                    <p>Téléchargez vos fichiers CSV/JSON pour analyse</p>
-                </a>
-
-                <a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank" class="action-card">
-                    <div class="action-icon" style="background: #00bfb3; color: white;">📊</div>
-                    <h3>Dashboard Kibana</h3>
-                    <p>Visualisez vos données en temps réel</p>
-                </a>
-
-                <a href="http://localhost:9200/_cat/indices?v" target="_blank" class="action-card">
-                    <div class="action-icon" style="background: #f0b90b; color: white;">🔍</div>
-                    <h3>Elasticsearch</h3>
-                    <p>Explorez vos indices et recherchez</p>
-                </a>
             </div>
         </div>
 

@@ -37,9 +37,11 @@ services:
       - elasticsearch
     ports:
       - "5044:5044"
+      - "9600:9600"
     volumes:
       - ./pipeline:/usr/share/logstash/pipeline:ro
       - ./data/logstash:/usr/share/logstash/data
+      - ./data/uploads:/data/uploads:ro
     networks:
       - elk_net
     restart: unless-stopped

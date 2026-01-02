@@ -1,8 +1,438 @@
-# ⚡ LogStream Studio - ELK Stack
+# ⚡ LogStream Studio - Plateforme de Monitoring Big Data
 
-## 📋 Description du Projet
+## 📋 Vue d'ensemble
 
-Ce projet est une plateforme de monitoring SaaS basée sur la stack ELK (Elasticsearch, Logstash, Kibana) intégrée avec MongoDB, Redis et une application web Flask. La solution permet de télécharger, traiter et visualiser des fichiers de logs au format CSV et JSON.
+**LogStream Studio** est une plateforme complète de monitoring et d'analyse de logs Big Data construite avec la stack ELK (Elasticsearch, Logstash, Kibana). Le projet intègre MongoDB pour la gestion des métadonnées, Redis pour le caching, et une application web Flask moderne avec système d'authentification JWT.
+
+### Objectifs du Projet
+
+- 🎯 Centraliser et analyser des logs de différentes sources (CSV, JSON)
+- 📊 Visualiser les données en temps réel via des dashboards interactifs
+- 🔐 Sécuriser l'accès avec un système d'authentification robuste
+- 📈 Fournir des statistiques et métriques en temps réel
+- 🔍 Permettre la recherche avancée dans les logs
+- 💾 Stocker et gérer efficacement les métadonnées des uploads
+
+📐 **Architecture Complète** : Consultez [ARCHITECTURE.md](./ARCHITECTURE.md) pour une vue détaillée de l'organisation du projet.
+
+---
+
+## 🚀 Démarches de Réalisation du Projet
+
+### Phase 1 : Mise en Place de l'Infrastructure ELK
+
+**Objectif** : Déployer la stack ELK de base avec Docker Compose
+
+#### Étapes réalisées :
+
+1. **Configuration Docker Compose**
+   - Création du fichier `docker-compose.yml` avec 7 services
+   - Configuration des volumes pour la persistance des données
+   - Mise en place du réseau `elk_net` pour la communication inter-services
+   - Définition des variables d'environnement dans `.env`
+
+2. **Déploiement Elasticsearch**
+   - Version 8.10.3 configurée en mode single-node
+   - Désactivation de la sécurité pour l'environnement de développement
+   - Mapping du port 9200 pour l'API REST
+   - Volume `./data/elasticsearch` pour la persistance
+
+3. **Intégration Kibana**
+   - Configuration de la connexion à Elasticsearch
+   - Interface web accessible sur le port 5601
+   - Personnalisation des dashboards pour l'analyse e-commerce
+
+4. **Configuration Logstash**
+   - Création de pipelines pour CSV et JSON dans `./pipeline/`
+   - Configuration des inputs (file), filters (parsing) et outputs (Elasticsearch)
+   - Mapping automatique vers les indices Elasticsearch
+
+**Résultats** : Infrastructure ELK fonctionnelle et communicante
+
+---
+
+### Phase 2 : Ajout des Bases de Données (MongoDB & Redis)
+
+**Objectif** : Intégrer des bases de données pour la gestion des métadonnées et le caching
+
+#### Étapes réalisées :
+
+1. **Déploiement MongoDB**
+   - Container MongoDB version 7
+   - Base de données `monitoring` avec collections :
+     - `uploads` : Métadonnées des fichiers uploadés
+     - `users` : Comptes utilisateurs (ajouté en Phase 5)
+   - Mongo Express sur port 8081 pour l'administration web
+   - Credentials : admin/admin123
+
+2. **Intégration Redis**
+   - Déploiement Redis pour le caching des sessions
+   - Configuration de la persistance avec `dump.rdb`
+   - Port 6379 exposé pour les connexions
+
+3. **Tests de Connexion**
+   - Vérification de la communication entre services
+   - Tests CRUD sur MongoDB
+   - Tests SET/GET sur Redis
+
+**Résultats** : Bases de données opérationnelles et intégrées à l'écosystème
+
+---
+
+### Phase 3 : Développement de l'Application Web Flask
+
+**Objectif** : Créer une interface web moderne pour l'upload et la visualisation des logs
+
+#### Étapes réalisées :
+
+1. **Architecture Flask** (`webapp/app.py`)
+   - Structure modulaire avec séparation des routes
+   - Connexions aux 5 services (Elasticsearch, MongoDB, Redis, Kibana, Logstash)
+   - Gestion des erreurs et fallbacks si services indisponibles
+
+2. **Système de Fichiers**
+   - Upload de fichiers CSV/JSON/TXT/LOG
+   - Validation des extensions autorisées
+   - Stockage dans `./data/uploads/` avec noms sécurisés (secure_filename)
+   - Prévisualisation des 10 premières lignes
+
+3. **Intégration avec Logstash**
+   - Volume partagé entre Flask et Logstash
+   - Traitement automatique des fichiers uploadés
+   - Injection dans Elasticsearch via les pipelines
+
+4. **Base de Données**
+   - Enregistrement des métadonnées dans MongoDB :
+     - Nom du fichier, taille, type MIME
+     - Date d'upload, statut (saved/processed/error)
+     - Hôte d'origine
+   - Requêtes pour récupérer l'historique des uploads
+
+**Résultats** : Application web fonctionnelle permettant l'upload et le traitement des logs
+
+---
+
+### Phase 4 : Création des Interfaces Utilisateur
+
+**Objectif** : Designer des interfaces modernes et intuitives avec HTML/CSS/JavaScript
+
+#### Interface 1 : **Page d'Accueil / Dashboard Principal** (`/`)
+
+**Description** :
+- **En-tête** : Logo LogStream Studio avec navigation vers toutes les pages
+- **KPIs en temps réel** :
+  - Total de logs dans Elasticsearch
+  - Logs récents (dernières 24h basé sur les données disponibles)
+  - Nombre d'erreurs (status='failed')
+  - Fichiers uploadés (depuis MongoDB)
+- **Graphique Timeline** : Visualisation Chart.js des logs sur 30 derniers jours
+- **Section Services** : Cards avec status de chaque service (Elasticsearch, Kibana, MongoDB, Redis, Logstash)
+- **Design** : Thème sombre moderne avec dégradés et animations
+
+**Fonctionnalités** :
+- Rafraîchissement automatique des stats toutes les 5 secondes
+- Indicateurs visuels colorés (vert/rouge) pour les status
+- Liens directs vers Kibana, Mongo Express, indices Elasticsearch
+- Responsive design
+
+#### Interface 2 : **Page d'Upload** (`/upload`)
+
+**Description** :
+- **Zone de drag & drop** : Interface intuitive pour glisser-déposer les fichiers
+- **Sélecteur de fichiers** : Bouton classique pour choisir un fichier
+- **Prévisualisation en temps réel** : Affichage des 10 premières lignes après upload
+- **Métadonnées** : 
+  - Nom du fichier
+  - Taille (Ko/Mo)
+  - Type MIME
+  - Date d'upload
+  - Statut de traitement
+- **Design** : Cards avec icônes, animations de transition, feedback visuel
+
+**Fonctionnalités** :
+- Validation côté client des extensions (.csv, .json, .txt, .log)
+- Upload AJAX avec barre de progression
+- Messages de succès/erreur dynamiques
+- Redirection automatique vers le dashboard après succès
+
+#### Interface 3 : **Page Fichiers / Dashboard Uploads** (`/dashboard`)
+
+**Description** :
+- **Statistiques MongoDB** :
+  - Total des uploads
+  - Uploads réussis
+  - Uploads en erreur
+- **Liste des 10 derniers uploads** :
+  - Tableau avec colonnes : Nom, Taille, Type, Date, Statut
+  - Badges colorés pour les statuts (vert=success, rouge=error)
+  - Icônes selon le type de fichier
+- **Design** : Layout en grille avec cards statistiques en haut
+
+**Fonctionnalités** :
+- Tri par date (plus récent en premier)
+- Affichage formaté des tailles (Ko/Mo)
+- Dates au format français
+- Message si aucun upload
+
+#### Interface 4 : **Page Health Check** (`/health`)
+
+**Description** :
+- **Status de chaque service** :
+  - ✅ Elasticsearch (9200) - Connected/Disconnected + version
+  - ✅ Kibana (5601) - Accessible/Inaccessible
+  - ✅ MongoDB (27017) - Connected + nombre de documents
+  - ✅ Redis (6379) - Connected + test PING
+  - ✅ Logstash (9600) - Running + version
+- **Informations système** :
+  - Timestamp de vérification
+  - Status global (All systems operational / Some issues)
+- **Design** : Cards avec icônes de services, couleurs selon status
+
+**Fonctionnalités** :
+- Vérification en temps réel au chargement
+- Indicateurs visuels clairs (✅/❌)
+- Liens vers les interfaces d'administration
+- Bouton de rafraîchissement
+
+#### Interface 5 : **Page de Recherche** (`/search`)
+
+**Description** :
+- **Formulaire de recherche avancée** :
+  - Champ texte libre (recherche multi-champs)
+  - Filtre par niveau (status: success/failed)
+  - Filtre par service/source
+  - Sélecteur de dates (de/à)
+- **Résultats paginés** :
+  - Affichage en cards avec highlights
+  - 50 résultats par page
+  - Pagination avec boutons Précédent/Suivant
+- **Détails des logs** :
+  - Timestamp, message, niveau, source
+  - Champs additionnels (customer_name, payment_type, amount, etc.)
+- **Design** : Interface de type moteur de recherche avec résultats stylisés
+
+**Fonctionnalités** :
+- Recherche fuzzy (tolérance aux fautes)
+- Multi-match sur plusieurs champs (message, product, customer_name, payment_type)
+- Filtres combinables
+- Export JSON des résultats possible
+- Highlighting des termes recherchés
+
+#### Interface 6 : **Page de Connexion** (`/login`)
+
+**Description** :
+- **Formulaire centré** avec logo animé
+- **Champs** :
+  - Nom d'utilisateur (icône 👤)
+  - Mot de passe (icône 🔒)
+  - Checkbox "Se souvenir de moi"
+- **Bouton de connexion** avec animation de chargement
+- **Lien** vers la page d'inscription
+- **Design** : Glassmorphism, fond avec dégradés animés, animations fluides
+
+**Fonctionnalités** :
+- Validation côté client
+- Authentication JWT via API `/api/login`
+- Cookie httpOnly avec expiration (24h ou 30j si "remember")
+- Messages d'erreur clairs
+- Auto-focus sur le champ username
+- Redirection vers `/` après connexion réussie
+
+#### Interface 7 : **Page d'Inscription** (`/signup`)
+
+**Description** :
+- **Formulaire d'inscription** :
+  - Nom d'utilisateur (min 3 caractères)
+  - Email (validation format)
+  - Mot de passe (min 6 caractères)
+  - Confirmation mot de passe
+- **Validation en temps réel** :
+  - Vérification des longueurs minimales
+  - Comparaison des mots de passe
+  - Messages d'aide sous les champs
+- **Lien** vers la page de connexion
+- **Design** : Même thème que login avec logo vert
+
+**Fonctionnalités** :
+- Création de compte via API `/api/signup`
+- Stockage dans MongoDB (collection `users`)
+- Hash des mots de passe avec werkzeug.security
+- Vérification unicité username et email
+- Redirection vers `/login` après création réussie
+- Scroll vertical activé pour voir tout le formulaire
+
+**Technologies Frontend** :
+- HTML5 sémantique
+- CSS3 avec variables custom et animations
+- Vanilla JavaScript (ES6+)
+- Chart.js pour les graphiques
+- Fetch API pour les requêtes AJAX
+- Google Fonts (Inter)
+
+---
+
+### Phase 5 : Système d'Authentification JWT
+
+**Objectif** : Sécuriser l'application avec authentification et gestion des utilisateurs
+
+#### Étapes réalisées :
+
+1. **Module d'Authentification** (`webapp/auth.py`)
+   - Classe `AuthManager` pour gérer les tokens JWT
+   - Génération de tokens avec expiration (24h par défaut)
+   - Vérification des credentials (MongoDB + fallback admin)
+   - Extraction des tokens depuis cookies ou headers
+   - Décorateurs `@login_required` et `@api_login_required`
+
+2. **Gestion des Utilisateurs MongoDB**
+   - Collection `users` avec schéma :
+     ```python
+     {
+       'username': str,
+       'email': str,
+       'password_hash': str,  # Hash sécurisé
+       'role': str,           # 'user' ou 'admin'
+       'created_at': datetime,
+       'last_login': datetime,
+       'is_active': bool
+     }
+     ```
+   - Fonction `create_user()` avec validations
+   - Fonction `verify_credentials()` pour login
+   - Mise à jour automatique de `last_login`
+
+3. **Routes API d'Authentification**
+   - `POST /api/login` : Connexion avec JWT
+   - `POST /api/signup` : Création de compte
+   - `POST /api/logout` : Déconnexion (suppression cookie)
+   - `GET /api/verify-token` : Vérification de session
+
+4. **Protection des Routes**
+   - Toutes les pages principales protégées par `@login_required`
+   - Routes API protégées par `@api_login_required`
+   - Redirection automatique vers `/login` si non authentifié
+   - Stockage des infos utilisateur dans `request.user`
+
+5. **Configuration Sécurité**
+   - Variables d'environnement pour JWT_SECRET_KEY
+   - Cookies httpOnly pour éviter XSS
+   - Hash des mots de passe avec scrypt
+   - Compte admin par défaut (admin/admin123) comme fallback
+
+**Résultats** : Application entièrement sécurisée avec gestion multi-utilisateurs
+
+---
+
+### Phase 6 : Optimisation et Debugging
+
+**Objectif** : Résoudre les problèmes et optimiser les performances
+
+#### Problèmes résolus :
+
+1. **Graphiques vides sur le dashboard**
+   - **Cause** : Données datées de novembre 2025, requêtes cherchaient "aujourd'hui" (janvier 2026)
+   - **Solution** : Modification de l'API `/api/stats` pour afficher toutes les données disponibles
+   - Calcul dynamique des "logs récents" basé sur la date la plus récente des données
+   - Timeline affichant 30 derniers jours de données (au lieu de seulement 7j depuis maintenant)
+
+2. **Inputs non cliquables sur login/signup**
+   - **Cause** : `z-index` insuffisant sur `.login-card`
+   - **Solution** : Ajout de `z-index: 100` pour passer au-dessus de la décoration de fond
+
+3. **Scroll bloqué sur signup**
+   - **Cause** : `overflow: hidden` sur `.login-body`
+   - **Solution** : Changement vers `overflow-y: auto` + `padding: 2rem 0`
+
+4. **Services non accessibles**
+   - **Cause** : Flask local utilisait hostnames Docker (mongodb, elasticsearch)
+   - **Solution** : Configuration `.env` avec localhost pour tous les services
+   - Modification de `app.py` pour charger les variables d'environnement
+
+5. **Port Logstash manquant**
+   - **Cause** : Port 9600 (API monitoring) non exposé dans docker-compose
+   - **Solution** : Ajout du mapping `9600:9600`
+
+6. **Volume uploads non monté**
+   - **Cause** : Logstash ne voyait pas les fichiers uploadés
+   - **Solution** : Ajout du volume `./data/uploads:/data/uploads:ro` dans docker-compose
+
+**Résultats** : Application stable et performante sans bugs
+
+---
+
+### Phase 7 : Scripts Utilitaires
+
+**Objectif** : Fournir des outils pour le développement et le test
+
+#### Scripts créés :
+
+1. **`scripts/view-users.py`**
+   - Affiche tous les utilisateurs de MongoDB
+   - Statistiques (total, actifs, dernière connexion)
+   - Commandes utiles pour gérer les users
+
+2. **`scripts/generate-recent-data.py`**
+   - Génère 500 transactions e-commerce avec dates récentes
+   - Sortie CSV et JSON dans `/tmp/logstream_test_data/`
+   - Répartition 70% success / 30% failed
+   - Utilisation : Tester la mise à jour automatique des graphiques
+
+3. **`scripts/setup-kibana-dashboard.sh`**
+   - Automatise l'import des dashboards Kibana
+   - Configure les visualisations e-commerce
+
+4. **`scripts/inject-ecommerce-data.sh`**
+   - Injecte les données de test dans Elasticsearch
+   - 1000 transactions e-commerce initiales
+
+**Résultats** : Outils facilitant le développement et les tests
+
+---
+
+### Phase 8 : Nettoyage et Documentation
+
+**Objectif** : Nettoyer le code et documenter le projet
+
+#### Actions réalisées :
+
+1. **Suppression des fichiers inutiles**
+   - `example_app.py` (démo non utilisée)
+   - `quick_test.py` (script de test)
+   - `test_database.py` (tests unitaires)
+   - `test_es_stats.py` (diagnostic temporaire)
+   - `.env.example` (doublon de .env)
+   - `REORGANISATION.md` (historique, `ARCHITECTURE.md` suffit)
+
+2. **Organisation des dossiers**
+   - `config/` : Fichiers de configuration Kibana et données de test
+   - `docs/` : Documentation technique (AUTH-SYSTEM.md, DESIGN.md, etc.)
+   - `scripts/` : Scripts utilitaires Python et Bash
+   - `data/` : Volumes Docker persistants
+   - `pipeline/` : Configurations Logstash
+   - `webapp/` : Application Flask complète
+
+3. **Documentation**
+   - `README.md` : Guide complet (ce fichier)
+   - `ARCHITECTURE.md` : Structure détaillée du projet
+   - `docs/AUTH-SYSTEM.md` : Documentation système d'authentification
+   - Commentaires dans le code
+
+**Résultats** : Projet propre, organisé et bien documenté
+
+---
+
+## 📊 Statistiques du Projet
+
+- **7 services Docker** orchestrés
+- **8 pages web** interactives
+- **15+ routes API** REST
+- **2 bases de données** (MongoDB, Redis)
+- **3 pipelines Logstash** (CSV, JSON, e-commerce)
+- **1000+ documents** de test dans Elasticsearch
+- **Authentification JWT** complète
+- **~3000 lignes de code** Python/HTML/CSS/JS
+
+---
 
 ## 🏗️ Architecture
 
@@ -49,35 +479,83 @@ Le projet est composé de **7 services Docker** orchestrés via Docker Compose :
 ```
 projet/
 ├── docker-compose.yml          # Orchestration des services
-├── README.md                   # Documentation (ce fichier)
-├── CREDENTIALS.md              # Identifiants et accès
-├── DESIGN.md                   # Documentation du design system
-├── DARK-THEME.md               # Guide du thème dark
-├── test-services.sh            # Script de test automatique
+├── README.md                   # Documentation principale
 ├── .env                        # Variables d'environnement
-├── data/                       # Données persistantes
+├── .env.example                # Template de configuration
+├── .gitignore                  # Fichiers ignorés par Git
+│
+├── config/                     # 📋 Fichiers de configuration
+│   ├── dashboard-final.ndjson         # Dashboard Kibana final
+│   ├── ecommerce-dashboard-export.ndjson
+│   ├── fix-tables.ndjson             # Configuration des tables
+│   ├── fix-visualizations.ndjson     # Configuration des visualisations
+│   ├── kibana-import-pro.ndjson      # Import Kibana professionnel
+│   ├── kibana-import.ndjson          # Import Kibana basique
+│   ├── test-ecommerce-logs.json      # Logs de test e-commerce
+│   └── test-mongo.csv                # Données de test MongoDB
+│
+├── data/                       # 💾 Données persistantes (volumes Docker)
 │   ├── elasticsearch/          # Index Elasticsearch
-│   ├── kibana/                 # Config Kibana
-│   ├── logstash/               # Data Logstash
+│   ├── kibana/                 # Configuration Kibana
+│   ├── logstash/               # Données Logstash
 │   ├── mongodb/                # Base MongoDB
 │   ├── redis/                  # Snapshots Redis
 │   └── uploads/                # Fichiers uploadés
-├── elasticsearch/
+│
+├── docs/                       # 📚 Documentation complète
+│   ├── AUTH-SYSTEM.md          # Système d'authentification JWT
+│   ├── CHANGELOG-AUTH.md       # Changelog authentification
+│   ├── CHANGELOG-DASHBOARD.md  # Changelog dashboard
+│   ├── CREDENTIALS.md          # Identifiants et accès
+│   ├── DATABASE-MODULE.md      # Module base de données
+│   ├── DARK-THEME.md           # Guide du thème dark
+│   ├── DESIGN.md               # Design system
+│   ├── KIBANA-DASHBOARD.md     # Documentation Kibana
+│   ├── PHASE5-COMPLETE.md      # Historique Phase 5
+│   ├── RECAP-AUTH.md           # Récapitulatif authentification
+│   └── SEARCH-PAGE.md          # Page de recherche
+│
+├── elasticsearch/              # ⚙️ Configuration Elasticsearch
 │   └── logs-saas-template.json # Template d'index
-├── pipeline/
-│   ├── csv-pipeline.conf       # Pipeline Logstash CSV
-│   └── json-pipeline.conf      # Pipeline Logstash JSON
-└── webapp/
-    ├── app.py                  # Application Flask (+ routes)
-    ├── Dockerfile              # Image Docker webapp
+│
+├── pipeline/                   # 🔄 Pipelines Logstash
+│   ├── csv-pipeline.conf       # Pipeline pour fichiers CSV
+│   └── json-pipeline.conf      # Pipeline pour fichiers JSON
+│
+├── scripts/                    # 🔧 Scripts utilitaires
+│   ├── add-service-logs.py            # Ajout de logs de services
+│   ├── fill-empty-fields.py           # Remplissage des champs vides
+│   ├── fix-kibana-dashboard.sh        # Correction dashboard Kibana
+│   ├── inject-ecommerce-data.sh       # Injection données e-commerce
+│   ├── inject-service-logs.py         # Injection logs de services
+│   ├── regenerate-customer-data.sh    # Régénération données clients
+│   ├── setup-kibana-dashboard.sh      # Configuration dashboard
+│   ├── test-auth-system.py            # Tests authentification
+│   ├── test-services.sh               # Tests des services
+│   ├── update-logs-service.py         # Mise à jour logs
+│   └── verify-kibana-setup.sh         # Vérification setup Kibana
+│
+└── webapp/                     # 🌐 Application Web Flask
+    ├── app.py                  # Application Flask principale
+    ├── auth.py                 # Module d'authentification JWT
+    ├── database.py             # Module base de données
+    ├── Dockerfile              # Image Docker
     ├── requirements.txt        # Dépendances Python
-    ├── templates/              # Templates HTML
-    │   ├── index.html          # Page d'accueil moderne
-    │   ├── upload.html         # Page d'upload avec drag & drop
-    │   └── dashboard.html      # Dashboard avec statistiques
+    ├── models/                 # Modèles de données
+    │   └── __init__.py
+    ├── routes/                 # Routes API
+    │   └── __init__.py
     ├── static/                 # Ressources statiques
-    │   └── style.css           # Design system complet
-    └── uploads/                # (deprecated, use data/uploads)
+    │   └── style.css           # Stylesheet principal
+    ├── templates/              # Templates HTML
+    │   ├── index.html          # Dashboard principal
+    │   ├── login.html          # Page de connexion
+    │   ├── upload.html         # Page d'upload
+    │   ├── dashboard.html      # Dashboard monitoring
+    │   ├── health.html         # Health check
+    │   └── search.html         # Recherche de logs
+    ├── uploads/                # (deprecated)
+    └── utils/                  # Utilitaires
 ```
 
 ## 🚀 Installation et Démarrage
@@ -147,6 +625,47 @@ Pour supprimer également les volumes de données :
 docker-compose down -v
 ```
 
+## 🔐 Authentification et Sécurité
+
+### Système d'authentification JWT
+
+LogStream Studio intègre un système d'authentification sécurisé basé sur **JWT (JSON Web Tokens)** pour protéger l'accès à l'interface d'administration.
+
+#### 🔑 Identifiants par défaut
+- **Username**: `admin`
+- **Password**: `admin123`
+
+⚠️ **Important**: Changez ces identifiants en production via les variables d'environnement.
+
+#### Configuration dans `.env`
+
+```dotenv
+# Authentication
+JWT_SECRET_KEY=your-secret-key-change-this-in-production
+JWT_EXPIRATION_HOURS=24
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+```
+
+#### Fonctionnalités
+- ✅ Authentification par JWT avec cookies HTTP-only
+- ✅ Expiration automatique des tokens (24h par défaut)
+- ✅ Option "Se souvenir de moi" (30 jours)
+- ✅ Protection contre XSS et CSRF
+- ✅ Hachage sécurisé des mots de passe (PBKDF2-SHA256)
+- ✅ Toutes les routes principales protégées
+
+#### Routes protégées
+- `/` - Dashboard principal
+- `/health` - Health check
+- `/search` - Recherche de logs
+- `/upload` - Upload de fichiers
+- `/dashboard` - Dashboard de monitoring
+- Toutes les routes `/api/*` (sauf login/logout)
+
+#### Documentation complète
+📖 Consultez [AUTH-SYSTEM.md](./AUTH-SYSTEM.md) pour la documentation détaillée du système d'authentification.
+
 ## 🎨 Interface Web Moderne - Dark Theme
 
 L'application dispose d'une interface web professionnelle en **mode dark** avec :
@@ -168,7 +687,7 @@ L'application dispose d'une interface web professionnelle en **mode dark** avec 
 
 | Service | URL | Port | Authentification |
 |---------|-----|------|------------------|
-| **Flask WebApp** | http://localhost:8000 | 8000 | Aucune |
+| **Flask WebApp** | http://localhost:8000 | 8000 | **admin / admin123** |
 | **Kibana** | http://localhost:5601 | 5601 | Aucune |
 | **Mongo Express** | http://localhost:8081 | 8081 | admin / admin123 |
 | **Elasticsearch** | http://localhost:9200 | 9200 | Aucune |

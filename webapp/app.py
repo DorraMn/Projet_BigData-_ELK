@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, make_response
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, timedelta
@@ -8,6 +8,17 @@ from elasticsearch import Elasticsearch
 from collections import defaultdict
 import redis
 import requests
+from auth import init_auth_manager, login_required, api_login_required, check_auth, get_current_user
+
+# Charger les variables d'environnement depuis .env manuellement
+env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+if os.path.exists(env_path):
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ.setdefault(key, value)
 
 # Simple Flask application for Monitoring SaaS
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -21,7 +32,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'csv', 'json', 'txt', 'log'}
 
 # MongoDB client
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://mongodb:27017')
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
 MONGO_DB = os.environ.get('MONGO_DB', 'monitoring')
 MONGO_COLLECTION = os.environ.get('MONGO_COLLECTION', 'uploads')
 try:
@@ -30,13 +41,18 @@ try:
     mongo_client.server_info()
     mongo_db = mongo_client[MONGO_DB]
     uploads_col = mongo_db[MONGO_COLLECTION]
+    users_col = mongo_db['users']  # Collection pour les utilisateurs
 except Exception as e:
     # If Mongo is unavailable, set uploads_col to None and log via prints (Flask logging not configured here)
     uploads_col = None
+    users_col = None
     print(f"Warning: cannot connect to MongoDB at {MONGO_URI}: {e}")
 
+# Initialiser l'AuthManager avec la collection users
+auth_manager = init_auth_manager(users_col)
+
 # Elasticsearch client
-ES_HOST = os.environ.get('ES_HOST', 'http://elasticsearch:9200')
+ES_HOST = os.environ.get('ELASTICSEARCH_HOST', os.environ.get('ES_HOST', 'http://localhost:9200'))
 try:
     es_client = Elasticsearch([ES_HOST], request_timeout=5)
     if es_client.ping():
@@ -53,25 +69,189 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ============================================
+#  ROUTES D'AUTHENTIFICATION
+# ============================================
+
+@app.route('/login')
+def login_page():
+    """Page de connexion"""
+    # Si déjà connecté, rediriger vers l'accueil
+    if check_auth():
+        return redirect(url_for('index'))
+    return render_template('login.html')
+
+
+@app.route('/signup')
+def signup_page():
+    """Page d'inscription"""
+    # Si déjà connecté, rediriger vers l'accueil
+    if check_auth():
+        return redirect(url_for('index'))
+    return render_template('signup.html')
+
+
+@app.route('/api/signup', methods=['POST'])
+def api_signup():
+    """API d'inscription - Crée un nouveau compte utilisateur"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        # Validation
+        if not username or not email or not password:
+            return jsonify({
+                'success': False,
+                'message': 'Tous les champs sont requis'
+            }), 400
+        
+        if len(username) < 3:
+            return jsonify({
+                'success': False,
+                'message': 'Le nom d\'utilisateur doit contenir au moins 3 caractères'
+            }), 400
+        
+        if len(password) < 6:
+            return jsonify({
+                'success': False,
+                'message': 'Le mot de passe doit contenir au moins 6 caractères'
+            }), 400
+        
+        # Créer l'utilisateur
+        result = auth_manager.create_user(username, email, password)
+        
+        if result['success']:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erreur serveur: {str(e)}'
+        }), 500
+
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    """API de connexion - Génère un token JWT"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        remember = data.get('remember', False)
+        
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'message': 'Nom d\'utilisateur et mot de passe requis'
+            }), 400
+        
+        # Vérifier les credentials
+        auth_result = auth_manager.verify_credentials(username, password)
+        if not auth_result or not auth_result.get('valid'):
+            return jsonify({
+                'success': False,
+                'message': 'Identifiants invalides'
+            }), 401
+        
+        user_info = auth_result['user']
+        
+        # Générer le token
+        token = auth_manager.generate_token(user_info)
+        
+        # Créer la réponse
+        response = make_response(jsonify({
+            'success': True,
+            'message': 'Connexion réussie',
+            'token': token,
+            'user': user_info
+        }))
+        
+        # Définir le cookie (expire dans 24h ou 30 jours si remember)
+        max_age = 30 * 24 * 60 * 60 if remember else 24 * 60 * 60
+        response.set_cookie(
+            'access_token',
+            token,
+            max_age=max_age,
+            httponly=True,
+            secure=False,  # True en production avec HTTPS
+            samesite='Lax'
+        )
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erreur serveur: {str(e)}'
+        }), 500
+
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    """API de déconnexion - Supprime le token"""
+    response = make_response(jsonify({
+        'success': True,
+        'message': 'Déconnexion réussie'
+    }))
+    
+    # Supprimer le cookie
+    response.set_cookie('access_token', '', max_age=0)
+    
+    return response
+
+
+@app.route('/api/verify-token', methods=['GET'])
+def verify_token():
+    """Vérifie si le token est valide"""
+    user = get_current_user()
+    
+    if user:
+        return jsonify({
+            'success': True,
+            'authenticated': True,
+            'user': {
+                'username': user['username'],
+                'role': user['role']
+            }
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'authenticated': False
+        }), 401
+
+
+# ============================================
+#  ROUTES PROTÉGÉES
+# ============================================
+
 @app.route('/')
+@login_required
 def index():
     # Return the index template
     return render_template('index.html')
 
 
 @app.route('/health')
+@login_required
 def health():
     """Page de health check pour tous les services"""
     return render_template('health.html')
 
 
 @app.route('/search')
+@login_required
 def search():
     """Page de recherche personnalisée dans les logs"""
     return render_template('search.html')
 
 
 @app.route('/api/health')
+@api_login_required
 def api_health():
     """API endpoint pour vérifier le statut de tous les services"""
     services = {}
@@ -127,65 +307,73 @@ def api_health():
     
     # Check Redis
     try:
-        redis_client = redis.Redis(host='redis', port=6379, socket_connect_timeout=2)
+        redis_host = os.environ.get('REDIS_HOST', 'localhost')
+        redis_port = int(os.environ.get('REDIS_PORT', 6379))
+        redis_client = redis.Redis(host=redis_host, port=redis_port, socket_connect_timeout=2)
         redis_info = redis_client.info()
         services['redis'] = {
             'status': 'healthy',
-            'url': 'redis://redis:6379',
+            'url': f'redis://{redis_host}:{redis_port}',
             'version': redis_info.get('redis_version', 'unknown'),
             'used_memory': redis_info.get('used_memory_human', 'unknown'),
             'connected_clients': redis_info.get('connected_clients', 0)
         }
     except Exception as e:
+        redis_host = os.environ.get('REDIS_HOST', 'localhost')
+        redis_port = int(os.environ.get('REDIS_PORT', 6379))
         services['redis'] = {
             'status': 'error',
-            'url': 'redis://redis:6379',
+            'url': f'redis://{redis_host}:{redis_port}',
             'error': str(e)
         }
     
     # Check Kibana
     try:
-        kibana_response = requests.get('http://kibana:5601/api/status', timeout=3)
+        kibana_host = os.environ.get('KIBANA_HOST', 'http://localhost:5601')
+        kibana_response = requests.get(f'{kibana_host}/api/status', timeout=3)
         if kibana_response.status_code == 200:
             kibana_data = kibana_response.json()
             services['kibana'] = {
                 'status': 'healthy',
-                'url': 'http://kibana:5601',
+                'url': kibana_host,
                 'version': kibana_data.get('version', {}).get('number', 'unknown'),
                 'state': kibana_data.get('status', {}).get('overall', {}).get('state', 'unknown')
             }
         else:
             services['kibana'] = {
                 'status': 'unhealthy',
-                'url': 'http://kibana:5601',
+                'url': kibana_host,
                 'error': f'HTTP {kibana_response.status_code}'
             }
     except Exception as e:
+        kibana_host = os.environ.get('KIBANA_HOST', 'http://localhost:5601')
         services['kibana'] = {
             'status': 'error',
-            'url': 'http://kibana:5601',
+            'url': kibana_host,
             'error': str(e)
         }
     
     # Check Logstash
     try:
-        logstash_response = requests.get('http://logstash:9600', timeout=3)
+        logstash_host = os.environ.get('LOGSTASH_HOST', 'http://localhost:9600')
+        logstash_response = requests.get(logstash_host, timeout=3)
         if logstash_response.status_code == 200:
             services['logstash'] = {
                 'status': 'healthy',
-                'url': 'http://logstash:9600',
+                'url': logstash_host,
                 'response': 'API responding'
             }
         else:
             services['logstash'] = {
                 'status': 'unhealthy',
-                'url': 'http://logstash:9600',
+                'url': logstash_host,
                 'error': f'HTTP {logstash_response.status_code}'
             }
     except Exception as e:
+        logstash_host = os.environ.get('LOGSTASH_HOST', 'http://localhost:9600')
         services['logstash'] = {
             'status': 'error',
-            'url': 'http://logstash:9600',
+            'url': logstash_host,
             'error': str(e)
         }
     
@@ -203,6 +391,7 @@ def api_health():
 
 
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 def upload():
     if request.method == 'GET':
         return render_template('upload.html')
@@ -299,6 +488,7 @@ def upload():
 
 
 @app.route('/api/stats')
+@api_login_required
 def api_stats():
     """API endpoint pour récupérer les statistiques en temps réel"""
     stats = {
@@ -316,19 +506,37 @@ def api_stats():
             result = es_client.count(index='logs-*')
             stats['total_logs'] = result.get('count', 0)
             
-            # Logs aujourd'hui
-            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            today_query = {
-                'query': {
-                    'range': {
-                        '@timestamp': {
-                            'gte': today_start.isoformat()
+            # Logs récents (dernières 24h de données disponibles)
+            # Au lieu de chercher "aujourd'hui", on cherche les logs récents basés sur les données existantes
+            recent_query = {
+                'size': 0,
+                'aggs': {
+                    'max_date': {'max': {'field': '@timestamp'}},
+                    'min_date': {'min': {'field': '@timestamp'}}
+                }
+            }
+            result_dates = es_client.search(index='logs-*', body=recent_query)
+            max_date_ms = result_dates.get('aggregations', {}).get('max_date', {}).get('value', None)
+            
+            if max_date_ms:
+                # Calculer 24h avant la date la plus récente
+                from datetime import datetime, timedelta
+                max_date = datetime.fromtimestamp(max_date_ms / 1000)
+                one_day_before = max_date - timedelta(days=1)
+                
+                recent_logs_query = {
+                    'query': {
+                        'range': {
+                            '@timestamp': {
+                                'gte': one_day_before.isoformat()
+                            }
                         }
                     }
                 }
-            }
-            result_today = es_client.count(index='logs-*', body=today_query)
-            stats['logs_today'] = result_today.get('count', 0)
+                result_recent = es_client.count(index='logs-*', body=recent_logs_query)
+                stats['logs_today'] = result_recent.get('count', 0)
+            else:
+                stats['logs_today'] = 0
             
             # Erreurs (status failed)
             error_query = {
@@ -341,16 +549,9 @@ def api_stats():
             result_errors = es_client.count(index='logs-*', body=error_query)
             stats['errors'] = result_errors.get('count', 0)
             
-            # Timeline des 7 derniers jours
+            # Timeline de toutes les données disponibles (au lieu de seulement 7 derniers jours)
             timeline_query = {
                 'size': 0,
-                'query': {
-                    'range': {
-                        '@timestamp': {
-                            'gte': 'now-7d/d'
-                        }
-                    }
-                },
                 'aggs': {
                     'logs_over_time': {
                         'date_histogram': {
@@ -363,7 +564,8 @@ def api_stats():
             }
             result_timeline = es_client.search(index='logs-*', body=timeline_query)
             buckets = result_timeline.get('aggregations', {}).get('logs_over_time', {}).get('buckets', [])
-            stats['timeline'] = [{'date': b['key_as_string'], 'count': b['doc_count']} for b in buckets]
+            # Limiter à 30 derniers jours de données pour ne pas surcharger le graphe
+            stats['timeline'] = [{'date': b['key_as_string'], 'count': b['doc_count']} for b in buckets[-30:]]
             
     except Exception as e:
         print(f"Error fetching Elasticsearch stats: {e}")
@@ -379,6 +581,7 @@ def api_stats():
 
 
 @app.route('/api/search')
+@api_login_required
 def api_search():
     """API endpoint pour rechercher dans les logs Elasticsearch"""
     # Récupérer les paramètres de recherche
@@ -526,6 +729,7 @@ def api_search():
 
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     # Get statistics from MongoDB
     stats = {

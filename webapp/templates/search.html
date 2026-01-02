@@ -27,9 +27,29 @@
                 <li><a href="/health">Health Check</a></li>
                 <li><a href="/search" class="active">Recherche</a></li>
                 <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
+                <li><a href="#" id="logout-btn" style="color: #ff6b35;">Déconnexion</a></li>
             </ul>
         </div>
     </nav>
+    
+    <script>
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Erreur lors de la déconnexion:', error);
+            }
+        });
+    </script>
 
     <!-- Main Content -->
     <div class="container mt-4">

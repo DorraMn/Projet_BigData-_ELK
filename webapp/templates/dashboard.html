@@ -24,9 +24,29 @@
                 <li><a href="/health">Health Check</a></li>
                 <li><a href="/search">Recherche</a></li>
                 <li><a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank">Kibana</a></li>
+                <li><a href="#" id="logout-btn" style="color: #ff6b35;">Éconnexion</a></li>
             </ul>
         </div>
     </nav>
+    
+    <script>
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Erreur lors de la déconnexion:', error);
+            }
+        });
+    </script>
 
     <div class="container">
         <!-- Header -->
@@ -110,41 +130,6 @@
                     <span>Aucun upload pour le moment. <a href="/upload" style="color: var(--primary); font-weight: 600;">Commencez par uploader un fichier</a></span>
                 </div>
             {% endif %}
-        </div>
-
-        <!-- Quick Links -->
-        <div class="card mt-4">
-            <h2 class="mb-3">🔗 Actions Rapides</h2>
-            <div class="grid grid-2">
-                <a href="http://localhost:5601/app/dashboards#/view/ecommerce-dashboard" target="_blank" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">📊</div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-title">Ouvrir Kibana</div>
-                        <div class="quick-action-desc">Visualiser le dashboard</div>
-                    </div>
-                </a>
-                <a href="http://localhost:8081" target="_blank" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🗄️</div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-title">Mongo Express</div>
-                        <div class="quick-action-desc">Gérer la base MongoDB</div>
-                    </div>
-                </a>
-                <a href="http://localhost:9200/_cat/indices?v" target="_blank" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🔍</div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-title">Index Elasticsearch</div>
-                        <div class="quick-action-desc">Consulter les indices</div>
-                    </div>
-                </a>
-                <a href="/upload" class="quick-action-card">
-                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">📤</div>
-                    <div class="quick-action-content">
-                        <div class="quick-action-title">Uploader un Fichier</div>
-                        <div class="quick-action-desc">Importer des données</div>
-                    </div>
-                </a>
-            </div>
         </div>
 
         <style>
