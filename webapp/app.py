@@ -26,8 +26,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'devkey')
 
 # Upload and data config
 BASE_DIR = os.path.dirname(__file__)
-# Store uploads under project-relative ./data/uploads for persistence across containers
-UPLOAD_FOLDER = os.path.abspath(os.path.join(BASE_DIR, '..', 'data', 'uploads'))
+# Store uploads in /app/uploads inside container (mounted as volume)
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'csv', 'json', 'txt', 'log'}
 
@@ -234,6 +234,12 @@ def verify_token():
 def index():
     # Return the index template
     return render_template('index.html')
+
+
+@app.route('/healthz')
+def healthz():
+    """Health check endpoint pour Docker (public, sans auth)"""
+    return jsonify({'status': 'ok', 'service': 'webapp'}), 200
 
 
 @app.route('/health')

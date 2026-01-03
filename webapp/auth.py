@@ -205,13 +205,13 @@ def login_required(f):
         
         if not token:
             # Rediriger vers la page de login pour les routes HTML
-            return redirect(url_for('login'))
+            return redirect(url_for('api_login'))
         
         payload = auth_manager.verify_token(token)
         
         if not payload:
             # Rediriger vers la page de login si le token est invalide
-            return redirect(url_for('login'))
+            return redirect(url_for('api_login'))
         
         # Ajouter les infos utilisateur à la requête
         request.user = payload
