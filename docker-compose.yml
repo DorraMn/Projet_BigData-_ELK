@@ -1,112 +1,255 @@
+# ============================================
+# Docker Compose - LogStream Studio
+# E-Commerce Analytics Platform avec ELK Stack
+# ============================================
+# 
+# Architecture:
+#   - Frontend (Nginx)     : Port 80
+#   - Backend (Flask)      : Port 8000
+#   - Elasticsearch        : Port 9200
+#   - Kibana               : Port 5601
+#   - Logstash             : Port 5044
+#   - MongoDB              : Port 27017
+#   - Redis                : Port 6379
+#
+# Usage:
+#   docker-compose up -d              # Démarrer tous les services
+#   docker-compose logs -f webapp     # Voir les logs du backend
+#   docker-compose down               # Arrêter tous les services
+# ============================================
+
 services:
+  # ==========================================
+  # ELASTICSEARCH - Moteur de recherche
+  # ==========================================
   elasticsearch:
-    image: "docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}"
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION:-8.10.3}
     container_name: elasticsearch
+    hostname: elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=logstream-cluster
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     volumes:
-      - ./data/elasticsearch:/usr/share/elasticsearch/data
+      - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
       - "9200:9200"
+      - "9300:9300"
     networks:
       - elk_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
 
+  # ==========================================
+  # KIBANA - Visualisation des données
+  # ==========================================
   kibana:
-    image: "docker.elastic.co/kibana/kibana:${KIBANA_VERSION}"
+    image: docker.elastic.co/kibana/kibana:${KIBANA_VERSION:-8.10.3}
     container_name: kibana
+    hostname: kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - SERVER_NAME=kibana
       - xpack.security.enabled=false
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     volumes:
-      - ./data/kibana:/usr/share/kibana/data
+      - kibana_data:/usr/share/kibana/data
     ports:
       - "5601:5601"
     networks:
       - elk_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status | grep -q 'available'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     restart: unless-stopped
 
+  # ==========================================
+  # LOGSTASH - Traitement des logs
+  # ==========================================
   logstash:
-    image: "docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION}"
+    image: docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION:-8.10.3}
     container_name: logstash
+    hostname: logstash
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     ports:
       - "5044:5044"
       - "9600:9600"
     volumes:
       - ./pipeline:/usr/share/logstash/pipeline:ro
-      - ./data/logstash:/usr/share/logstash/data
+      - logstash_data:/usr/share/logstash/data
       - ./data/uploads:/data/uploads:ro
     networks:
       - elk_net
     restart: unless-stopped
 
+  # ==========================================
+  # MONGODB - Base de données utilisateurs
+  # ==========================================
   mongodb:
     image: mongo:7
     container_name: mongodb
+    hostname: mongodb
     ports:
       - "27017:27017"
     volumes:
-      - ./data/mongodb:/data/db
+      - mongodb_data:/data/db
     networks:
       - elk_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
+  # ==========================================
+  # MONGO EXPRESS - Interface MongoDB
+  # ==========================================
   mongo-express:
     image: mongo-express:latest
     container_name: mongo-express
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     ports:
       - "8081:8081"
     environment:
       - ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017/
       - ME_CONFIG_MONGODB_SERVER=mongodb
-      - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+      - ME_CONFIG_BASICAUTH_USERNAME=${ADMIN_USERNAME:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ADMIN_PASSWORD:-admin123}
     networks:
       - elk_net
     restart: unless-stopped
 
+  # ==========================================
+  # REDIS - Cache et sessions
+  # ==========================================
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: redis
+    hostname: redis
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
-      - ./data/redis:/data
+      - redis_data:/data
     networks:
       - elk_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     restart: unless-stopped
 
+  # ==========================================
+  # WEBAPP - Backend Flask (API + Templates)
+  # ==========================================
   webapp:
     build:
       context: ./webapp
       dockerfile: Dockerfile
     container_name: webapp
+    hostname: webapp
     depends_on:
-      - mongodb
-      - redis
-      - elasticsearch
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
       - ./webapp:/app
+      - ./data/uploads:/app/uploads
     environment:
-      - FLASK_ENV=${FLASK_ENV}
-      - FLASK_RUN_PORT=${FLASK_RUN_PORT}
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - FLASK_RUN_PORT=8000
       - REDIS_URL=redis://redis:6379/0
       - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=monitoring
       - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-logstream-secret-key}
+      - JWT_EXPIRATION_HOURS=${JWT_EXPIRATION_HOURS:-24}
+    networks:
+      - elk_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ==========================================
+  # FRONTEND - Nginx Reverse Proxy
+  # ==========================================
+  frontend:
+    build:
+      context: ./webapp
+      dockerfile: Dockerfile.frontend
+    container_name: frontend
+    hostname: frontend
+    depends_on:
+      webapp:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    volumes:
+      - ./webapp/static:/usr/share/nginx/html/static:ro
     networks:
       - elk_net
     restart: unless-stopped
 
+# ==========================================
+# VOLUMES PERSISTANTS
+# ==========================================
+volumes:
+  elasticsearch_data:
+    driver: local
+  kibana_data:
+    driver: local
+  logstash_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ==========================================
+# RÉSEAU DOCKER
+# ==========================================
 networks:
   elk_net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

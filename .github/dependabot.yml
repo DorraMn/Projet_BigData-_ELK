@@ -1,0 +1,44 @@
+# ============================================
+# Dependabot Configuration
+# ============================================
+# 
+# Met à jour automatiquement les dépendances
+# pour corriger les vulnérabilités de sécurité
+# ============================================
+
+version: 2
+updates:
+  # Dépendances Python (pip)
+  - package-ecosystem: "pip"
+    directory: "/webapp"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "⬆️ deps(python):"
+
+  # Dépendances Docker
+  - package-ecosystem: "docker"
+    directory: "/webapp"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "⬆️ deps(docker):"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "⬆️ deps(actions):"

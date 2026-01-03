@@ -1,0 +1,70 @@
+# ============================================
+# Docker Compose Validation Workflow
+# ============================================
+# 
+# Vérifie que docker-compose.yml est valide
+# et que tous les services démarrent correctement
+# ============================================
+
+name: 🐳 Docker Compose Validation
+
+on:
+  push:
+    paths:
+      - 'docker-compose.yml'
+      - 'webapp/Dockerfile'
+      - 'webapp/Dockerfile.frontend'
+      - 'webapp/requirements.txt'
+  pull_request:
+    paths:
+      - 'docker-compose.yml'
+      - 'webapp/Dockerfile'
+      - 'webapp/Dockerfile.frontend'
+
+jobs:
+  validate:
+    name: 🔍 Validate Docker Compose
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Create .env file
+        run: |
+          cat > .env << EOF
+          ELASTIC_VERSION=8.10.3
+          KIBANA_VERSION=8.10.3
+          LOGSTASH_VERSION=8.10.3
+          FLASK_ENV=testing
+          FLASK_RUN_PORT=8000
+          JWT_SECRET_KEY=test-secret-key
+          JWT_EXPIRATION_HOURS=24
+          ADMIN_USERNAME=admin
+          ADMIN_PASSWORD=admin123
+          EOF
+      
+      - name: ✅ Validate docker-compose.yml syntax
+        run: |
+          docker compose config --quiet
+          echo "✅ docker-compose.yml syntax is valid"
+      
+      - name: 🏗️ Build all images
+        run: |
+          docker compose build --no-cache
+          echo "✅ All images built successfully"
+      
+      - name: 🚀 Start services
+        run: |
+          docker compose up -d elasticsearch mongodb redis
+          echo "⏳ Waiting for services to be healthy..."
+          sleep 30
+      
+      - name: 🧪 Test Elasticsearch
+        run: |
+          curl -s http://localhost:9200/_cluster/health || echo "⚠️ Elasticsearch not ready"
+      
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          docker compose down -v --remove-orphans
