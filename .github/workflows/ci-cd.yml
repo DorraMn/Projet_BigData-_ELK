@@ -217,7 +217,7 @@ jobs:
       
       # Build et push de l'image Backend
       - name: 🏗️ Build and push Backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./webapp
           file: ./webapp/Dockerfile
@@ -240,7 +240,7 @@ jobs:
       
       # Build et push de l'image Frontend
       - name: 🏗️ Build and push Frontend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./webapp
           file: ./webapp/Dockerfile.frontend
