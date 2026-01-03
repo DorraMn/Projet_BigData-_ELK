@@ -6,7 +6,7 @@ requests==2.31.0
 elasticsearch==8.10.0
 # JWT authentication
 PyJWT==2.8.0
-Werkzeug==2.3.6
+Werkzeug==3.1.4
 
 # ============================================
 # Testing dependencies
