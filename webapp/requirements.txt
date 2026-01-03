@@ -1,5 +1,5 @@
 Flask==2.3.2
-pymongo==4.3.3
+pymongo==4.15.5
 redis==4.5.1
 requests==2.31.0
 # Use a published client version compatible with ES 8.x
